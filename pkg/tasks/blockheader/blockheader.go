@@ -22,7 +22,7 @@ func (b *BlockHeader) Name() string {
 }
 
 func (b *BlockHeader) Models() []interface{} {
-	return []interface{}{new(models.BlockHeader)}
+	return []interface{}{new(models.BlockHeader), new(models.BlockParent)}
 }
 
 func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
@@ -38,10 +38,13 @@ func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, ti
 		return nil
 	}
 
-	var bhs []interface{}
+	var (
+		blockHeaders []interface{}
+		blockParents []interface{}
+	)
 	for _, bh := range tipSet.Blocks() {
-		bhs = append(
-			bhs, &models.BlockHeader{
+		blockHeaders = append(
+			blockHeaders, &models.BlockHeader{
 				Version:         version,
 				Cid:             bh.Cid().String(),
 				Miner:           bh.Miner.String(),
@@ -54,10 +57,23 @@ func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, ti
 				ForkSignaling:   bh.ForkSignaling,
 			},
 		)
+		for _, parent := range bh.Parents {
+			blockParents = append(blockParents, &models.BlockParent{
+				Height:    int64(bh.Height),
+				Version:   version,
+				Cid:       bh.Cid().String(),
+				ParentCid: parent.String(),
+			})
+		}
 	}
 
-	if len(bhs) > 0 {
-		if err := storage.WriteMany(ctx, bhs...); err != nil {
+	if len(blockHeaders) > 0 {
+		if err := storage.WriteMany(ctx, blockHeaders...); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
+		}
+	}
+	if len(blockParents) > 0 {
+		if err := storage.WriteMany(ctx, blockParents...); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}

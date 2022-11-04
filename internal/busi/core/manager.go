@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -79,12 +80,21 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 	defer func() {
 		state := 1
 		desc := ""
+		notFoundState := 0
 		if err != nil {
 			state = 2
 			desc = err.Error()
+			// TODO only test
+			if strings.Contains(err.Error(), "cannot find tipset") {
+				logrus.Warnf("task name %s height %d need retry", m.task.Name(), int(tipSet.Height()))
+				notFoundState = 1
+			}
 		}
-		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
-			int(tipSet.Height()), version, state, 2, desc)
+		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
+			int(tipSet.Height()), version, state, notFoundState, desc)
+		if err != nil {
+			logrus.Errorf("ReportTipsetState err:%s", err)
+		}
 	}()
 
 	if err = m.task.Run(ctx, m.cfg.Lotus.Addr, version, tipSet, m.storage); err != nil {

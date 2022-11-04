@@ -3,16 +3,30 @@ package chainnotifyclient
 import (
 	"fmt"
 
+	"github.com/Spacescore/observatory-task-server/pkg/errors"
 	"github.com/imroc/req/v3"
 )
+
+type ErrResponse struct {
+	RequestID string `json:"request_id"`
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+}
 
 // TopicSignIn register topic
 func TopicSignIn(host string, topic string) error {
 	params := map[string]string{
 		"topic": topic,
 	}
-	resp := req.C().Post(fmt.Sprintf("%s/api/v1/topic", host)).SetBodyJsonMarshal(params).Do()
-	return resp.Err
+	resp := req.C().Post(fmt.Sprintf("%s/v1/topic", host)).SetBodyJsonMarshal(params).Do()
+	if resp.IsError() {
+		var errResponse ErrResponse
+		if err := resp.UnmarshalJson(&errResponse); err != nil {
+			return err
+		}
+		return errors.New(errResponse.Message)
+	}
+	return nil
 }
 
 // ReportTipsetState report chain notify server task state
@@ -25,6 +39,13 @@ func ReportTipsetState(host string, topic string, height, version, state, notFou
 		"not_found_state": notFoundState,
 		"description":     desc,
 	}
-	resp := req.C().Post(fmt.Sprintf("%s/api/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
-	return resp.Err
+	resp := req.C().Post(fmt.Sprintf("%s/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
+	if resp.IsError() {
+		var errResponse ErrResponse
+		if err := resp.UnmarshalJson(&errResponse); err != nil {
+			return err
+		}
+		return errors.New(errResponse.Message)
+	}
+	return nil
 }

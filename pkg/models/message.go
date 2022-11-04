@@ -2,7 +2,7 @@ package models
 
 // Message raw filecoin message
 type Message struct {
-	Height     int64  `xorm:"integer notnull pk"`
+	Height     int64  `xorm:"bigint notnull pk"`
 	Version    int    `xorm:"integer notnull pk"`
 	Cid        string `xorm:"varchar(255) pk notnull index default ''"`
 	From       string `xorm:"varchar(255) notnull index default ''"`
@@ -11,7 +11,7 @@ type Message struct {
 	GasFeeCap  int64  `xorm:"bigint notnull default 0"`
 	GasPremium int64  `xorm:"bigint notnull default 0"`
 	GasLimit   int64  `xorm:"bigint notnull default 0"`
-	SizeBytes  int    `xorm:"integer notnull default 0"`
+	SizeBytes  int    `xorm:"bigint notnull default 0"`
 	Nonce      uint64 `xorm:"bigint notnull default 0"`
 	Method     uint64 `xorm:"integer notnull default 0"`
 	CreatedAt  int64  `xorm:"created"`
@@ -23,13 +23,13 @@ func (m *Message) TableName() string {
 
 // EVMMessage evm transaction
 type EVMMessage struct {
-	Height               int64  `xorm:"integer notnull pk"`
+	Height               int64  `xorm:"bigint notnull pk"`
 	Version              int    `xorm:"integer notnull pk"`
 	Hash                 string `xorm:"varchar(255) pk notnull index default ''"`
 	ChainID              int64  `xorm:"integer notnull default 0"`
 	Nonce                int64  `xorm:"bigint notnull default 0"`
 	BlockHash            string `xorm:"varchar(255) notnull index default ''"`
-	BlockNumber          int64  `xorm:"integer notnull default 0"`
+	BlockNumber          int64  `xorm:"bigint notnull default 0"`
 	TransactionIndex     int64  `xorm:"integer notnull default 0"`
 	From                 string `xorm:"varchar(255) notnull index default ''"`
 	To                   string `xorm:"varchar(255) notnull index default ''"`
