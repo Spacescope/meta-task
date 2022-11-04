@@ -1,0 +1,23 @@
+[task]
+    name = "block_header"
+
+[storage]
+    name = "pgsql"
+
+[storage.params]
+    dsn = "postgresql://user:password@ip:port/dbname?sslmode=disable"
+
+[lotus_cluster]
+    addr = "ws://ip:1234/rpc/v1"
+
+[chain_notify]
+    host = ""
+
+[chain_notify.mq]
+    name = "redis"
+
+[chain_notify.mq.params]
+    dsn = "redis://127.0.0.1:6379/0"
+
+queue_name = "block_header"
+
