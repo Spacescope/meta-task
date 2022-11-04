@@ -7,8 +7,8 @@ import (
 	"github.com/Spacescore/observatory-task-server/pkg/metrics"
 	"github.com/Spacescore/observatory-task-server/pkg/models"
 	"github.com/Spacescore/observatory-task-server/pkg/storage"
+	lotusApi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/client"
-
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -42,16 +42,23 @@ func (b *EVMBlockHeader) Run(ctx context.Context, lotusAddr string, version int,
 	if err != nil {
 		return errors.Wrap(err, "NewGatewayRPCV1 failed")
 	}
-	ethBlock, err := node.EthGetBlockByNumber(ctx, tipSet.Height().String(), true)
-	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByNumber failed")
-	}
 	defer closer()
+
+	tipSetCid, err := tipSet.Key().Cid()
+	if err != nil {
+		return errors.Wrap(err, "tipSetCid failed")
+	}
+	hash, err := lotusApi.EthHashFromCid(tipSetCid)
+	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
+	if err != nil {
+		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+	}
 
 	if ethBlock.Number > 0 {
 		blockHeader := &models.EVMBlockHeader{
 			Height:           int64(tipSet.Height()),
 			Version:          version,
+			Hash:             hash.String(),
 			ParentHash:       ethBlock.ParentHash.String(),
 			Miner:            ethBlock.Miner.String(),
 			StateRoot:        ethBlock.StateRoot.String(),

@@ -48,12 +48,12 @@ func (m *Message) Run(ctx context.Context, lotusAddr string, version int, tipSet
 		return nil
 	})
 
-	// g.Go(func() error {
-	// 	if err = m.insertReceipt(ctx, node, storage, messages, version, int64(tipSet.Height())); err != nil {
-	// 		return errors.Wrap(err, "insertReceipt failed")
-	// 	}
-	// 	return nil
-	// })
+	g.Go(func() error {
+		if err = m.insertReceipt(ctx, node, storage, messages, version, tipSet); err != nil {
+			return errors.Wrap(err, "insertReceipt failed")
+		}
+		return nil
+	})
 
 	if err = g.Wait(); err != nil {
 		return err
@@ -63,7 +63,8 @@ func (m *Message) Run(ctx context.Context, lotusAddr string, version int, tipSet
 }
 
 func (m *Message) insertReceipt(ctx context.Context, node api.FullNode, storage storage.Storage,
-	messages []api.Message, version int, height int64) error {
+	messages []api.Message, version int, tipSet *types.TipSet) error {
+	height := int64(tipSet.Height())
 	existed, err := storage.Existed(new(models.Receipt), height, version)
 	if err != nil {
 		return errors.Wrap(err, "storage.Existed failed")
@@ -72,9 +73,23 @@ func (m *Message) insertReceipt(ctx context.Context, node api.FullNode, storage 
 		return nil
 	}
 
-	for _, message := range messages {
-		node.StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, true)
-	}
+	// var receiptModels []interface{}
+	// for _, message := range messages {
+	// 	msgLookup, err := node.StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, true)
+	// 	if err != nil {
+	// 		return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
+	// 	}
+	// 	receipt := &models.Receipt{
+	// 		Height:     height,
+	// 		Version:    version,
+	// 		MessageCID: message.Message.Cid().String(),
+	// 		StateRoot:  tipSet.ParentState().String(),
+	// 		Idx:        message.Message.in,
+	// 		ExitCode:   0,
+	// 		GasUsed:    0,
+	// 		CreatedAt:  0,
+	// 	}
+	// }
 
 	return nil
 }
