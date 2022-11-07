@@ -1,4 +1,4 @@
-module github.com/Spacescore/observatory-task-server
+module github.com/Spacescore/observatory-task
 
 go 1.18
 
@@ -193,5 +193,3 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 	xorm.io/builder v0.3.9 // indirect
 )
-
-replace github.com/filecoin-project/lotus => /Users/imxyb/code/golang/lotus

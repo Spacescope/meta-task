@@ -3,8 +3,8 @@ package chainnotifymq
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	"github.com/Spacescore/observatory-task-server/pkg/chainnotifymq/mqmessage"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/chainnotifymq/mqmessage"
 )
 
 var mqMap = make(map[string]MQ)

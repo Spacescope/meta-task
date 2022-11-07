@@ -11,6 +11,11 @@ type CFG struct {
 	Lotus       *Lotus       `toml:"lotus_cluster"`
 	ChainNotify *ChainNotify `toml:"chain_notify"`
 	Task        *Task        `toml:"task"`
+	Log         Log          `toml:"log"`
+}
+
+type Log struct {
+	Level string `toml:"level"`
 }
 
 type Task struct {

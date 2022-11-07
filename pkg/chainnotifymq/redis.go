@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	mqmessage "github.com/Spacescore/observatory-task-server/pkg/chainnotifymq/mqmessage"
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/chainnotifymq/mqmessage"
+	"github.com/Spacescore/observatory-task/pkg/errors"
 
 	vredis "github.com/go-redis/redis/v8"
 	"github.com/mitchellh/mapstructure"

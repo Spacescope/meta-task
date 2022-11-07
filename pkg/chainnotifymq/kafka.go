@@ -3,9 +3,9 @@ package chainnotifymq
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	"github.com/Spacescore/observatory-task-server/pkg/chainnotifymq/mqmessage"
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/chainnotifymq/mqmessage"
+	"github.com/Spacescore/observatory-task/pkg/errors"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/segmentio/kafka-go"

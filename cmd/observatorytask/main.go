@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Spacescore/observatory-task-server/internal/busi"
+	"github.com/Spacescore/observatory-task/internal/busi"
 
 	"github.com/spf13/cobra"
 )
