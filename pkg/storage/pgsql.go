@@ -3,8 +3,8 @@ package storage
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/mitchellh/mapstructure"
 
 	_ "github.com/lib/pq"

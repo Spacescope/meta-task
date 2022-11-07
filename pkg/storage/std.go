@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/errors"
 )
 
 var _ Storage = (*Std)(nil)

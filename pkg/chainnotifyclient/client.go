@@ -3,7 +3,7 @@ package chainnotifyclient
 import (
 	"fmt"
 
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/imroc/req/v3"
 )
 

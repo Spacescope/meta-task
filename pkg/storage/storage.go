@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task-server/config"
+	"github.com/Spacescore/observatory-task/config"
 )
 
 var storageMap = make(map[string]Storage)

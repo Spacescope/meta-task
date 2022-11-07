@@ -1,61 +1,53 @@
-package blockheader
+package evmtask
 
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
-	"github.com/Spacescore/observatory-task-server/pkg/metrics"
-	"github.com/Spacescore/observatory-task-server/pkg/models"
-	"github.com/Spacescore/observatory-task-server/pkg/storage"
-	lotusApi "github.com/filecoin-project/lotus/api"
+	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
+	"github.com/Spacescore/observatory-task/pkg/storage"
+
+	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
-// EVMBlockHeader extract block header for evm
-type EVMBlockHeader struct {
+// BlockHeader extract block header for evm
+type BlockHeader struct {
 }
 
-func (b *EVMBlockHeader) Name() string {
+func (b *BlockHeader) Name() string {
 	return "evm_block_header"
 }
 
-func (b *EVMBlockHeader) Models() []interface{} {
-	return []interface{}{new(models.EVMBlockHeader)}
+func (b *BlockHeader) Model() interface{} {
+	return new(evmmodel.BlockHeader)
 }
 
-func (b *EVMBlockHeader) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	timer := prometheus.NewTimer(metrics.TaskCost.WithLabelValues(b.Name()))
-	defer timer.ObserveDuration()
-
-	existed, err := storage.Existed(new(models.EVMBlockHeader), int64(tipSet.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		return nil
-	}
-
 	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
 	if err != nil {
 		return errors.Wrap(err, "NewGatewayRPCV1 failed")
 	}
 	defer closer()
 
-	tipSetCid, err := tipSet.Key().Cid()
+	blkNum, err := api.EthUint64(tipSet.Height()).MarshalJSON()
 	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
+		return errors.Wrap(err, "MarshalJSON failed")
 	}
-	hash, err := lotusApi.EthHashFromCid(tipSetCid)
-	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := node.EthGetBlockByNumber(ctx, string(blkNum), true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
 
 	if ethBlock.Number > 0 {
-		blockHeader := &models.EVMBlockHeader{
+		tcid, err := tipSet.Key().Cid()
+		if err != nil {
+			return errors.Wrap(err, "Key.Cid() failed")
+		}
+		hash, err := api.EthHashFromCid(tcid)
+		blockHeader := &evmmodel.BlockHeader{
 			Height:           int64(tipSet.Height()),
 			Version:          version,
 			Hash:             hash.String(),
@@ -72,7 +64,7 @@ func (b *EVMBlockHeader) Run(ctx context.Context, lotusAddr string, version int,
 			ExtraData:        string(ethBlock.Extradata),
 			MixHash:          ethBlock.MixHash.String(),
 			Nonce:            ethBlock.Nonce.String(),
-			BaseFeePerGas:    ethBlock.BaseFeePerGas.Int64(),
+			BaseFeePerGas:    ethBlock.BaseFeePerGas.String(),
 			Size:             uint64(ethBlock.Size),
 			Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 		}

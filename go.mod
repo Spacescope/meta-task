@@ -1,4 +1,4 @@
-module github.com/Spacescore/observatory-task-server
+module github.com/Spacescore/observatory-task
 
 go 1.18
 

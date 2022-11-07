@@ -1,4 +1,4 @@
-package models
+package filecoinmodel
 
 type InternalMessage struct {
 }

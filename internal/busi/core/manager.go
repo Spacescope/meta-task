@@ -9,12 +9,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Spacescore/observatory-task-server/config"
-	"github.com/Spacescore/observatory-task-server/pkg/chainnotifyclient"
-	"github.com/Spacescore/observatory-task-server/pkg/chainnotifymq"
-	"github.com/Spacescore/observatory-task-server/pkg/errors"
-	"github.com/Spacescore/observatory-task-server/pkg/storage"
-	"github.com/Spacescore/observatory-task-server/pkg/tasks"
+	"github.com/Spacescore/observatory-task/config"
+	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
+	"github.com/Spacescore/observatory-task/pkg/chainnotifymq"
+	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/metrics"
+	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/Spacescore/observatory-task/pkg/tasks"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
@@ -76,7 +78,11 @@ func (m *Manager) topicSignIn() error {
 }
 
 func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet) error {
+	timer := prometheus.NewTimer(metrics.TaskCost.WithLabelValues(m.task.Name()))
+	defer timer.ObserveDuration()
+
 	var err error
+
 	defer func() {
 		state := 1
 		desc := ""
@@ -147,7 +153,7 @@ func (m *Manager) handleSignal() {
 func (m *Manager) syncStorage() error {
 	db, ok := m.storage.(storage.Database)
 	if ok {
-		if err := db.Sync(m.task.Models()...); err != nil {
+		if err := db.Sync(m.task.Model()); err != nil {
 			return errors.Wrap(err, "Sync failed")
 		}
 	}
@@ -179,10 +185,21 @@ func (m *Manager) Start(ctx context.Context) error {
 			logrus.Debugf("can not get any message, waiting...")
 			continue
 		}
-		logrus.Debugf("receive msg:%s", string(message.Val()))
 
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
 			logrus.Errorf("%+v", errors.Wrap(err, "json.Unmarshal failed"))
+			continue
+		}
+
+		existed, err := m.storage.Existed(m.task.Model(), int64(m.message.TipSet.Height()), m.message.Version)
+		if err != nil {
+			logrus.Errorf("%+v", errors.Wrap(err, "storage.Existed failed"))
+			continue
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.task.Name(),
+				int64(m.message.TipSet.Height()),
+				m.message.Version)
 			continue
 		}
 
