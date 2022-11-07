@@ -3,10 +3,12 @@ module github.com/Spacescore/observatory-task
 go 1.18
 
 require (
-	github.com/filecoin-project/lotus v1.16.2-0.20221006152817-38891f32749a
+	github.com/filecoin-project/go-state-types v0.1.11-0.20221021072238-58379610cafe
+	github.com/filecoin-project/lotus v1.16.2-0.20221029095757-1a06485a8c04
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.6
 	github.com/imroc/req/v3 v3.25.0
+	github.com/ipfs/go-cid v0.2.0
 	github.com/jinzhu/configor v1.2.1
 	github.com/lib/pq v1.10.2
 	github.com/mitchellh/mapstructure v1.5.0
@@ -51,7 +53,6 @@ require (
 	github.com/filecoin-project/go-hamt-ipld/v3 v3.1.0 // indirect
 	github.com/filecoin-project/go-jsonrpc v0.1.9-0.20221021184839-3320738f495f // indirect
 	github.com/filecoin-project/go-padreader v0.0.1 // indirect
-	github.com/filecoin-project/go-state-types v0.1.11-0.20221021072238-58379610cafe // indirect
 	github.com/filecoin-project/go-statestore v0.2.0 // indirect
 	github.com/filecoin-project/specs-actors v0.9.15 // indirect
 	github.com/filecoin-project/specs-actors/v2 v2.3.6 // indirect
@@ -84,7 +85,6 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-block-format v0.0.3 // indirect
 	github.com/ipfs/go-blockservice v0.3.0 // indirect
-	github.com/ipfs/go-cid v0.2.0 // indirect
 	github.com/ipfs/go-datastore v0.5.1 // indirect
 	github.com/ipfs/go-graphsync v0.13.1 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.2.0 // indirect
