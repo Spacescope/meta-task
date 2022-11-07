@@ -14,7 +14,6 @@ import (
 type KafkaParams struct {
 	Brokers []string
 	GroupID string
-	Topic   string
 }
 
 type Kafka struct {
@@ -26,11 +25,7 @@ func (k *Kafka) Name() string {
 	return "kafka"
 }
 
-func (k *Kafka) QueueName() string {
-	return k.topic
-}
-
-func (k *Kafka) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) error {
+func (k *Kafka) InitFromConfig(ctx context.Context, cfg *config.ChainNotify, queueName string) error {
 	var (
 		err    error
 		params KafkaParams
@@ -40,12 +35,10 @@ func (k *Kafka) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) err
 		return errors.Wrap(err, "mapstructure.Decode failed")
 	}
 
-	k.topic = params.Topic
-
 	k.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers: params.Brokers,
 		GroupID: params.GroupID,
-		Topic:   params.Topic,
+		Topic:   queueName,
 	})
 
 	return nil

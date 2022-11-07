@@ -15,8 +15,7 @@ import (
 var _ MQ = (*Redis)(nil)
 
 type RedisParams struct {
-	DSN       string
-	QueueName string `mapstructure:"queue_name"`
+	DSN string
 }
 
 type Redis struct {
@@ -28,7 +27,7 @@ func (r *Redis) Name() string {
 	return "redis"
 }
 
-func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) error {
+func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify, queueName string) error {
 	var (
 		err    error
 		params RedisParams
@@ -39,7 +38,7 @@ func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) err
 	if params.DSN == "" {
 		return errors.New("dsn can not empty")
 	}
-	if params.QueueName == "" {
+	if queueName == "" {
 		return errors.New("queue name can not empty")
 	}
 
@@ -48,7 +47,7 @@ func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) err
 		return err
 	}
 
-	r.queueName = params.QueueName
+	r.queueName = queueName
 
 	r.client = vredis.NewClient(opt)
 	reply := r.client.Ping(ctx)
@@ -56,10 +55,6 @@ func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify) err
 		return reply.Err()
 	}
 	return nil
-}
-
-func (r *Redis) QueueName() string {
-	return r.queueName
 }
 
 func (r *Redis) FetchMessage(ctx context.Context) (mqmessage.Message, error) {
