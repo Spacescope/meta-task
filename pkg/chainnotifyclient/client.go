@@ -19,6 +19,9 @@ func TopicSignIn(host string, topic string) error {
 		"topic": topic,
 	}
 	resp := req.C().Post(fmt.Sprintf("%s/v1/topic", host)).SetBodyJsonMarshal(params).Do()
+	if resp.Err != nil {
+		return resp.Err
+	}
 	if resp.IsError() {
 		var errResponse ErrResponse
 		if err := resp.UnmarshalJson(&errResponse); err != nil {
@@ -40,6 +43,9 @@ func ReportTipsetState(host string, topic string, height, version, state, notFou
 		"description":     desc,
 	}
 	resp := req.C().Post(fmt.Sprintf("%s/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
+	if resp.Err != nil {
+		return resp.Err
+	}
 	if resp.IsError() {
 		var errResponse ErrResponse
 		if err := resp.UnmarshalJson(&errResponse); err != nil {

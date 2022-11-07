@@ -22,8 +22,7 @@ func GetMQ(name string) MQ {
 
 type MQ interface {
 	Name() string
-	QueueName() string
-	InitFromConfig(ctx context.Context, cfg *config.ChainNotify) error
+	InitFromConfig(ctx context.Context, cfg *config.ChainNotify, queueName string) error
 	FetchMessage(ctx context.Context) (mqmessage.Message, error)
 	Close() error
 }

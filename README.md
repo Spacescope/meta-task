@@ -34,7 +34,6 @@ name = "redis"    // use redis
 
 [chain_notify.mq.params]   // redis params
 dsn = "redis://127.0.0.1:6379/0"
-queue_name = "message" // must same as task.name
 ```
 
 ## Build And Run

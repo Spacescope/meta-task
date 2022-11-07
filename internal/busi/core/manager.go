@@ -67,7 +67,7 @@ func (m *Manager) initChainNotifyMQ(ctx context.Context) error {
 	if m.chainNotifyMQ == nil {
 		return errors.New(fmt.Sprintf("chain notify mq %s not support", m.cfg.ChainNotify.MQ.Name))
 	}
-	if err := m.chainNotifyMQ.InitFromConfig(ctx, m.cfg.ChainNotify); err != nil {
+	if err := m.chainNotifyMQ.InitFromConfig(ctx, m.cfg.ChainNotify, m.task.Name()); err != nil {
 		return errors.Wrap(err, "chainNotifyMQ.InitFromConfig failed")
 	}
 	return nil
