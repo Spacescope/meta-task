@@ -18,6 +18,7 @@ type Receipt struct {
 	EffectiveGasPrice int64  `xorm:"bigint notnull default 0"`
 	LogsBloom         string `xorm:"text notnull default ''"`
 	Logs              string `xorm:"text notnull default ''"`
+	CreatedAt         int64  `xorm:"created"`
 }
 
 func (r *Receipt) TableName() string {

@@ -103,6 +103,17 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 		}
 	}()
 
+	existed, err := m.storage.Existed(m.task.Model(), int64(m.message.TipSet.Height()), m.message.Version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.task.Name(),
+			int64(m.message.TipSet.Height()),
+			m.message.Version)
+		return nil
+	}
+
 	if err = m.task.Run(ctx, m.cfg.Lotus.Addr, version, tipSet, m.storage); err != nil {
 		return errors.Wrap(err, "task.Run failed")
 	}
@@ -186,20 +197,10 @@ func (m *Manager) Start(ctx context.Context) error {
 			continue
 		}
 
+		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
+
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
 			logrus.Errorf("%+v", errors.Wrap(err, "json.Unmarshal failed"))
-			continue
-		}
-
-		existed, err := m.storage.Existed(m.task.Model(), int64(m.message.TipSet.Height()), m.message.Version)
-		if err != nil {
-			logrus.Errorf("%+v", errors.Wrap(err, "storage.Existed failed"))
-			continue
-		}
-		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.task.Name(),
-				int64(m.message.TipSet.Height()),
-				m.message.Version)
 			continue
 		}
 
