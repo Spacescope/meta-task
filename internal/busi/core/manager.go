@@ -205,7 +205,8 @@ func (m *Manager) Start(ctx context.Context) error {
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
 		if err = m.runTask(ctx, m.message.Version, m.message.TipSet); err != nil {
-			logrus.Errorf("%+v", errors.Wrap(err, "runTask failed"))
+			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version,
+				errors.Wrap(err, "runTask failed"))
 			continue
 		}
 
