@@ -197,12 +197,12 @@ func (m *Manager) Start(ctx context.Context) error {
 			continue
 		}
 
-		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
-
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
 			logrus.Errorf("%+v", errors.Wrap(err, "json.Unmarshal failed"))
 			continue
 		}
+
+		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
 		if err = m.runTask(ctx, m.message.Version, m.message.TipSet); err != nil {
 			logrus.Errorf("%+v", errors.Wrap(err, "runTask failed"))
