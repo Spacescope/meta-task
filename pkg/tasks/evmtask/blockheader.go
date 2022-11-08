@@ -32,21 +32,21 @@ func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, ti
 	}
 	defer closer()
 
-	blkNum, err := api.EthUint64(tipSet.Height()).MarshalJSON()
+	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
-		return errors.Wrap(err, "MarshalJSON failed")
+		return errors.Wrap(err, "tipSetCid failed")
 	}
-	ethBlock, err := node.EthGetBlockByNumber(ctx, string(blkNum), true)
+
+	hash, err := api.EthHashFromCid(tipSetCid)
+	if err != nil {
+		return errors.Wrap(err, "rpc EthHashFromCid failed")
+	}
+	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
 
 	if ethBlock.Number > 0 {
-		tcid, err := tipSet.Key().Cid()
-		if err != nil {
-			return errors.Wrap(err, "Key.Cid() failed")
-		}
-		hash, err := api.EthHashFromCid(tcid)
 		blockHeader := &evmmodel.BlockHeader{
 			Height:           int64(tipSet.Height()),
 			Version:          version,
