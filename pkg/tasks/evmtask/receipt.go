@@ -36,11 +36,16 @@ func (e *Receipt) Run(ctx context.Context, lotusAddr string, version int, tipSet
 	}
 	defer closer()
 
-	blkNum, err := api.EthUint64(tipSet.Height()).MarshalJSON()
+	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
-		return errors.Wrap(err, "MarshalJSON failed")
+		return errors.Wrap(err, "tipSetCid failed")
 	}
-	ethBlock, err := node.EthGetBlockByNumber(ctx, string(blkNum), true)
+
+	hash, err := api.EthHashFromCid(tipSetCid)
+	if err != nil {
+		return errors.Wrap(err, "rpc EthHashFromCid failed")
+	}
+	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
