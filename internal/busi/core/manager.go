@@ -188,7 +188,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	if err = m.init(ctx); err != nil {
 		return errors.Wrap(err, "init failed")
 	}
-	logrus.Info(os.Getpid())
 	defer m.chainNotifyMQ.Close()
 
 	go m.handleSignal()

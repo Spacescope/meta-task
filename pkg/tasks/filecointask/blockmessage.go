@@ -57,6 +57,7 @@ func (b *BlockMessage) Run(ctx context.Context, lotusAddr string, version int, t
 				blockMessages = append(blockMessages, bm)
 				lock.Unlock()
 			}
+
 			for _, message := range msg.BlsMessages {
 				bm := &filecoinmodel.BlockMessage{
 					Height:     int64(tipSet.Height()),
