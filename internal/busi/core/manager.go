@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,6 +33,9 @@ type Message struct {
 // Manager task manage
 type Manager struct {
 	cfg           *config.CFG
+	ctx           context.Context
+	cancel        context.CancelFunc
+	lock          sync.Mutex
 	chainNotifyMQ chainnotifymq.MQ
 	storage       storage.Storage
 	task          tasks.Task
@@ -155,10 +159,14 @@ func (m *Manager) handleSignal() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM)
 	<-c
-	if m.message != nil {
+	m.lock.Lock()
+	msg := m.message
+	m.lock.Unlock()
+	if msg != nil {
 		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
-			int(m.message.TipSet.Height()), m.message.Version, 2, 2, "sigterm")
+			int(msg.TipSet.Height()), msg.Version, 2, 2, "sigterm")
 	}
+	m.cancel()
 }
 
 func (m *Manager) syncStorage() error {
@@ -175,6 +183,8 @@ func (m *Manager) syncStorage() error {
 func (m *Manager) Start(ctx context.Context) error {
 	var err error
 
+	m.ctx, m.cancel = context.WithCancel(ctx)
+
 	if err = m.init(ctx); err != nil {
 		return errors.Wrap(err, "init failed")
 	}
@@ -183,8 +193,17 @@ func (m *Manager) Start(ctx context.Context) error {
 	go m.handleSignal()
 
 	for {
+		select {
+		case <-m.ctx.Done():
+			logrus.Warnf("receive sigterm, exit")
+			return nil
+		default:
+		}
+
 		// reset
+		m.lock.Lock()
 		m.message = nil
+		m.lock.Unlock()
 
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
@@ -197,10 +216,13 @@ func (m *Manager) Start(ctx context.Context) error {
 			continue
 		}
 
+		m.lock.Lock()
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
+			m.lock.Unlock()
 			logrus.Errorf("%+v", errors.Wrap(err, "json.Unmarshal failed"))
 			continue
 		}
+		m.lock.Unlock()
 
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
@@ -213,7 +235,8 @@ func (m *Manager) Start(ctx context.Context) error {
 		// do it if mq can commit
 		if committableMQ, ok := m.chainNotifyMQ.(chainnotifymq.CommittableMQ); ok {
 			if err = committableMQ.Commit(ctx, message); err != nil {
-				logrus.Errorf("%+v", errors.Wrap(err, "message commit failed"))
+				logrus.Errorf("tipset height:%d, version:%d %+v", m.message.TipSet.Height(), m.message.Version,
+					errors.Wrap(err, "message commit failed"))
 				continue
 			}
 		}
