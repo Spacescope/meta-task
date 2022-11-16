@@ -6,7 +6,7 @@ type Contract struct {
 	Version         int    `xorm:"integer notnull pk"`
 	Address         string `xorm:"varchar(255) notnull pk"`
 	FilecoinAddress string `xorm:"varchar(255) notnull default ''"`
-	Balance         int64  `xorm:"bigint notnull default 0"`
+	Balance         string `xorm:"varchar(100) notnull default '0'"`
 	Nonce           uint64 `xorm:"bigint notnull default 0"`
 	ByteCode        string `xorm:"text notnull default ''"`
 	CreatedAt       int64  `xorm:"created"`
