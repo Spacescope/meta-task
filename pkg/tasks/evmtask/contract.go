@@ -3,6 +3,7 @@ package evmtask
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
@@ -68,6 +69,8 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 		contracts []interface{}
 		lock      sync.Mutex
 	)
+
+	exist := make(map[string]bool)
 
 	for _, transaction := range transactions {
 		tm, ok := transaction.(map[string]interface{})
@@ -142,15 +145,20 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 						return errors.Wrap(err, "EthGetCode failed")
 					}
 					lock.Lock()
-					contracts = append(contracts, &evmmodel.Contract{
-						Height:          int64(tipSet.Height()),
-						Version:         version,
-						FilecoinAddress: evmActor.Address.String(),
-						Address:         receipt.ContractAddress.String(),
-						Balance:         evmActor.Balance.Int64(),
-						Nonce:           evmActor.Nonce,
-						ByteCode:        hex.EncodeToString(byteCode),
-					})
+					key := fmt.Sprintf("%d-%d-%s", tipSet.Height(), version, ethAddress.String())
+					_, ok := exist[key]
+					if !ok {
+						contracts = append(contracts, &evmmodel.Contract{
+							Height:          int64(tipSet.Height()),
+							Version:         version,
+							FilecoinAddress: evmActor.Address.String(),
+							Address:         ethAddress.String(),
+							Balance:         evmActor.Balance.String(),
+							Nonce:           evmActor.Nonce,
+							ByteCode:        hex.EncodeToString(byteCode),
+						})
+						exist[key] = true
+					}
 					lock.Unlock()
 				}
 
