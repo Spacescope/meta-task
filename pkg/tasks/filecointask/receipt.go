@@ -2,6 +2,7 @@ package filecointask
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
@@ -41,6 +42,10 @@ func (r *Receipt) Run(ctx context.Context, lotusAddr string, version int, tipSet
 		msgLookup, err := node.StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, true)
 		if err != nil {
 			return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
+		}
+		if msgLookup == nil || (msgLookup.Message.String() != message.Message.Cid().String()) {
+			return errors.New(fmt.Sprintf("msg look may be nil or message id not equal, old:%s, new:%s",
+				message.Message.Cid(), msgLookup.Message.String()))
 		}
 		receiptModels = append(receiptModels, &filecoinmodel.Receipt{
 			Height:     int64(tipSet.Height()),
