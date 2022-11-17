@@ -7,6 +7,14 @@ import (
 	"github.com/imroc/req/v3"
 )
 
+var (
+	reqClient *req.Client
+)
+
+func init() {
+	reqClient = req.C()
+}
+
 type ErrResponse struct {
 	RequestID string `json:"request_id"`
 	Code      int    `json:"code"`
@@ -18,7 +26,10 @@ func TopicSignIn(host string, topic string) error {
 	params := map[string]string{
 		"topic": topic,
 	}
-	resp := req.C().Post(fmt.Sprintf("%s/api/v1/topic", host)).SetBodyJsonMarshal(params).Do()
+	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/topic", host)).SetBodyJsonMarshal(params).Do()
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
 	if resp.Err != nil {
 		return resp.Err
 	}
@@ -42,7 +53,10 @@ func ReportTipsetState(host string, topic string, height, version, state, notFou
 		"not_found_state": notFoundState,
 		"description":     desc,
 	}
-	resp := req.C().Post(fmt.Sprintf("%s/api/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
+	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
 	if resp.Err != nil {
 		return resp.Err
 	}

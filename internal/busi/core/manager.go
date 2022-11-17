@@ -14,6 +14,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
 	"github.com/Spacescore/observatory-task/pkg/chainnotifymq"
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/metrics"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/tasks"
@@ -40,11 +41,21 @@ type Manager struct {
 	storage       storage.Storage
 	task          tasks.Task
 	message       *Message
+	rpc           *lotus.Rpc
 }
 
 // NewManager new manager
 func NewManager(cfg *config.CFG) *Manager {
 	return &Manager{cfg: cfg}
+}
+
+func (m *Manager) initRpc() error {
+	var err error
+	m.rpc, err = lotus.NewRPC(m.ctx, m.cfg.Lotus.Addr)
+	if err != nil {
+		return errors.Wrap(err, "NewRPC")
+	}
+	return nil
 }
 
 func (m *Manager) initStorage(ctx context.Context) error {
@@ -118,7 +129,7 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 		return nil
 	}
 
-	if err = m.task.Run(ctx, m.cfg.Lotus.Addr, version, tipSet, m.storage); err != nil {
+	if err = m.task.Run(ctx, m.rpc, version, tipSet, m.storage); err != nil {
 		return errors.Wrap(err, "task.Run failed")
 	}
 	return nil
@@ -131,6 +142,12 @@ func (m *Manager) init(ctx context.Context) error {
 	if err = m.initStorage(ctx); err != nil {
 		return errors.Wrap(err, "initStorage failed")
 	}
+
+	logrus.Info("init lotus rpc")
+	if err = m.initRpc(); err != nil {
+		return errors.Wrap(err, "initRpc failed")
+	}
+	defer m.rpc.Close()
 
 	logrus.Info("init task")
 	if err = m.initTask(); err != nil {
