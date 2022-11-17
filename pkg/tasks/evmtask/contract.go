@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -28,15 +28,9 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
 	var err error
-
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewFullNodeRPCV1 failed")
-	}
-	defer closer()
 
 	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
@@ -47,7 +41,7 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
-	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
@@ -59,9 +53,10 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 	}
 
 	// lazy init actor map
-	if err = utils.InitActorCodeCidMap(ctx, node); err != nil {
+	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
+	logrus.Debugf("end InitActorCodeCidMap")
 
 	// TODO Should use pool be used to limit concurrency?
 	grp := new(errgroup.Group)
@@ -81,10 +76,13 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromHex failed")
 				}
-				receipt, err := node.EthGetTransactionReceipt(ctx, ethHash)
+
+				logrus.Debugf("start EthGetTransactionReceipt")
+				receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
 				if err != nil {
 					return errors.Wrap(err, "EthGetTransactionReceipt failed")
 				}
+				logrus.Debugf("start EthGetTransactionReceipt")
 
 				// first, judge to address is evm actor
 				// second, judge from address is evm actor
@@ -98,7 +96,7 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 					if err != nil {
 						return errors.Wrap(err, "ToFilecoinAddress failed")
 					}
-					toActor, err := node.StateGetActor(ctx, toFilecoinAddress, tipSet.Key())
+					toActor, err := rpc.Node().StateGetActor(ctx, toFilecoinAddress, tipSet.Key())
 					if err != nil {
 						return errors.Wrap(err, "StateGetActor failed")
 					}
@@ -111,7 +109,7 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 					if err != nil {
 						return errors.Wrap(err, "ToFilecoinAddress failed")
 					}
-					fromActor, err := node.StateGetActor(ctx, fromFilecoinAddress, tipSet.Key())
+					fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, tipSet.Key())
 					if err != nil {
 						return errors.Wrap(err, "StateGetActor failed")
 					}
@@ -140,7 +138,7 @@ func (c *Contract) Run(ctx context.Context, lotusAddr string, version int, tipSe
 					if err != nil {
 						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 					}
-					byteCode, err := node.EthGetCode(ctx, ethAddress, "")
+					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
 					if err != nil {
 						return errors.Wrap(err, "EthGetCode failed")
 					}

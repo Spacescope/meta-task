@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/sirupsen/logrus"
 
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 )
 
@@ -24,15 +24,9 @@ func (m *Message) Model() interface{} {
 	return new(filecoinmodel.Message)
 }
 
-func (m *Message) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewFullNodeRPCV1 failed")
-	}
-	defer closer()
-
-	messages, err := node.ChainGetMessagesInTipset(ctx, tipSet.Key())
+	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}

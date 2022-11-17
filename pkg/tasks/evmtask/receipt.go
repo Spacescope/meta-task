@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
@@ -28,14 +28,8 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewFullNodeRPCV1 failed")
-	}
-	defer closer()
-
 	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
@@ -45,7 +39,7 @@ func (e *Receipt) Run(ctx context.Context, lotusAddr string, version int, tipSet
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
-	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
@@ -71,7 +65,7 @@ func (e *Receipt) Run(ctx context.Context, lotusAddr string, version int, tipSet
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromHex failed")
 				}
-				receipt, err := node.EthGetTransactionReceipt(ctx, ethHash)
+				receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
 				if err != nil {
 					return errors.Wrap(err, "EthGetTransactionReceipt failed")
 				}

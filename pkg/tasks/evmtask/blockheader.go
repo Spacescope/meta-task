@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 )
 
@@ -24,14 +24,8 @@ func (b *BlockHeader) Model() interface{} {
 	return new(evmmodel.BlockHeader)
 }
 
-func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewGatewayRPCV1 failed")
-	}
-	defer closer()
-
 	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
@@ -41,7 +35,7 @@ func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, ti
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
-	ethBlock, err := node.EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}

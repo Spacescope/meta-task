@@ -5,11 +5,11 @@ import (
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -27,15 +27,9 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewFullNodeRPCV1 failed")
-	}
-	defer closer()
-
-	messages, err := node.ChainGetMessagesInTipset(ctx, tipSet.Key())
+	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}
@@ -49,7 +43,7 @@ func (i *InternalTx) Run(ctx context.Context, lotusAddr string, version int, tip
 	for _, message := range messages {
 		message := message
 		grp.Go(func() error {
-			replay, err := node.StateReplay(ctx, types.EmptyTSK, message.Cid)
+			replay, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
