@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
@@ -22,7 +23,7 @@ func (b *BlockHeader) Model() interface{} {
 	return filecoinmodel.BlockHeader{}
 }
 
-func (b *BlockHeader) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
 	var blockHeaders []interface{}
 	for _, bh := range tipSet.Blocks() {

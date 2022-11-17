@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/api/client"
 	"github.com/filecoin-project/lotus/chain/types"
 
 	"golang.org/x/sync/errgroup"
@@ -25,14 +25,8 @@ func (b *BlockMessage) Model() interface{} {
 	return new(filecoinmodel.BlockMessage)
 }
 
-func (b *BlockMessage) Run(ctx context.Context, lotusAddr string, version int, tipSet *types.TipSet,
+func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	node, closer, err := client.NewFullNodeRPCV1(ctx, lotusAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "NewFullNodeRPCV1 failed")
-	}
-	defer closer()
-
 	var (
 		blockMessages []interface{}
 		lock          sync.Mutex
@@ -42,7 +36,7 @@ func (b *BlockMessage) Run(ctx context.Context, lotusAddr string, version int, t
 
 	for _, block := range tipSet.Blocks() {
 		grp.Go(func() error {
-			msg, err := node.ChainGetBlockMessages(ctx, block.Cid())
+			msg, err := rpc.Node().ChainGetBlockMessages(ctx, block.Cid())
 			if err != nil {
 				return errors.Wrap(err, "ChainGetBlockMessages failed")
 			}
@@ -73,7 +67,7 @@ func (b *BlockMessage) Run(ctx context.Context, lotusAddr string, version int, t
 		})
 	}
 
-	if err = grp.Wait(); err != nil {
+	if err := grp.Wait(); err != nil {
 		return err
 	}
 
