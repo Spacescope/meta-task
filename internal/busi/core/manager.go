@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -206,6 +208,10 @@ func (m *Manager) Start(ctx context.Context) error {
 		return errors.Wrap(err, "init failed")
 	}
 	defer m.chainNotifyMQ.Close()
+
+	go func() {
+		_ = http.ListenAndServe("0.0.0.0:6060", nil)
+	}()
 
 	go m.handleSignal()
 

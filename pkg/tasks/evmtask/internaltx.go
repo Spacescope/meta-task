@@ -43,7 +43,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	for _, message := range messages {
 		message := message
 		grp.Go(func() error {
-			replay, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
+			invocs, err := rpc.Node().StateReplay(ctx, tipSet.Key(), message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
@@ -51,7 +51,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			if err != nil {
 				return errors.Wrap(err, "EthHashFromCid failed")
 			}
-			for _, subCall := range replay.ExecutionTrace.Subcalls {
+			for _, subCall := range invocs.ExecutionTrace.Subcalls {
 				subMessage := subCall.Msg
 				from, err := api.EthAddressFromFilecoinAddress(subMessage.From)
 				if err != nil {
