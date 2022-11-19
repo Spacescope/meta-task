@@ -47,7 +47,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
-			parentHash, err := api.EthHashFromCid(message.Cid)
+			parentHash, err := api.NewEthHashFromCid(message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "EthHashFromCid failed")
 			}
@@ -61,7 +61,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 				}
-				hash, err := api.EthHashFromCid(subMessage.Cid())
+				hash, err := api.NewEthHashFromCid(subMessage.Cid())
 				if err != nil {
 					return errors.Wrap(err, "EthHashFromCid failed")
 				}

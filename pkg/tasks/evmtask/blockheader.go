@@ -7,6 +7,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/sirupsen/logrus"
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
@@ -31,7 +32,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.EthHashFromCid(tipSetCid)
+	hash, err := api.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
@@ -39,6 +40,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
+	logrus.Debugf("eth block is %s-%d", ethBlock.Hash, ethBlock.Number)
 
 	if ethBlock.Number > 0 {
 		blockHeader := &evmmodel.BlockHeader{

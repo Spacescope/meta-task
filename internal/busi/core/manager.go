@@ -18,10 +18,10 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/metrics"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/tasks"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -229,7 +229,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			continue
 		}
 		if message == nil {
-			logrus.Debugf("can not get any message, waiting...")
+			// logrus.Debugf("can not get any message, waiting...")
 			continue
 		}
 

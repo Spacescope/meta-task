@@ -37,7 +37,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.EthHashFromCid(tipSetCid)
+	hash, err := api.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
