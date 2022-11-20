@@ -8,7 +8,6 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/sirupsen/logrus"
@@ -35,8 +34,9 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	}
 
 	var (
-		internalTxs []interface{}
+		internalTxs []*evmmodel.InternalTX
 		lock        sync.Mutex
+		sm          sync.Map
 	)
 
 	grp := new(errgroup.Group)
@@ -53,6 +53,12 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			}
 			for _, subCall := range invocs.ExecutionTrace.Subcalls {
 				subMessage := subCall.Msg
+				// filter same sub message
+				_, loaded := sm.LoadOrStore(subMessage.Cid().String(), true)
+				if loaded {
+					continue
+				}
+
 				from, err := api.EthAddressFromFilecoinAddress(subMessage.From)
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
@@ -88,7 +94,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	}
 
 	if len(internalTxs) > 0 {
-		if err = storage.WriteMany(ctx, internalTxs...); err != nil {
+		if err = storage.WriteMany(ctx, &internalTxs); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

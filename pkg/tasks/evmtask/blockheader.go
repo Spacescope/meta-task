@@ -7,8 +7,6 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/sirupsen/logrus"
-
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
 )
@@ -36,37 +34,40 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
-	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
+
+	var ethBlock api.EthBlock
+
+	ethBlock, err = rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
-	logrus.Debugf("eth block is %s-%d", ethBlock.Hash, ethBlock.Number)
+	if ethBlock.Number == 0 {
+		return errors.Wrap(err, "block number must greater than zero")
+	}
 
-	if ethBlock.Number > 0 {
-		blockHeader := &evmmodel.BlockHeader{
-			Height:           int64(tipSet.Height()),
-			Version:          version,
-			Hash:             hash.String(),
-			ParentHash:       ethBlock.ParentHash.String(),
-			Miner:            ethBlock.Miner.String(),
-			StateRoot:        ethBlock.StateRoot.String(),
-			TransactionsRoot: ethBlock.TransactionsRoot.String(),
-			ReceiptsRoot:     ethBlock.ReceiptsRoot.String(),
-			Difficulty:       int64(ethBlock.Difficulty),
-			Number:           int64(ethBlock.Number),
-			GasLimit:         int64(ethBlock.GasLimit),
-			GasUsed:          int64(ethBlock.GasUsed),
-			Timestamp:        int64(ethBlock.Timestamp),
-			ExtraData:        string(ethBlock.Extradata),
-			MixHash:          ethBlock.MixHash.String(),
-			Nonce:            ethBlock.Nonce.String(),
-			BaseFeePerGas:    ethBlock.BaseFeePerGas.String(),
-			Size:             uint64(ethBlock.Size),
-			Sha3Uncles:       ethBlock.Sha3Uncles.String(),
-		}
-		if err = storage.Write(ctx, blockHeader); err != nil {
-			return errors.Wrap(err, "storageWrite failed")
-		}
+	blockHeader := &evmmodel.BlockHeader{
+		Height:           int64(tipSet.Height()),
+		Version:          version,
+		Hash:             hash.String(),
+		ParentHash:       ethBlock.ParentHash.String(),
+		Miner:            ethBlock.Miner.String(),
+		StateRoot:        ethBlock.StateRoot.String(),
+		TransactionsRoot: ethBlock.TransactionsRoot.String(),
+		ReceiptsRoot:     ethBlock.ReceiptsRoot.String(),
+		Difficulty:       int64(ethBlock.Difficulty),
+		Number:           int64(ethBlock.Number),
+		GasLimit:         int64(ethBlock.GasLimit),
+		GasUsed:          int64(ethBlock.GasUsed),
+		Timestamp:        int64(ethBlock.Timestamp),
+		ExtraData:        string(ethBlock.Extradata),
+		MixHash:          ethBlock.MixHash.String(),
+		Nonce:            ethBlock.Nonce.String(),
+		BaseFeePerGas:    ethBlock.BaseFeePerGas.String(),
+		Size:             uint64(ethBlock.Size),
+		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
+	}
+	if err = storage.Write(ctx, blockHeader); err != nil {
+		return errors.Wrap(err, "storageWrite failed")
 	}
 
 	return nil

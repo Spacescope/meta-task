@@ -83,8 +83,8 @@ func (p *PGSQL) Write(ctx context.Context, m interface{}) error {
 	return nil
 }
 
-func (p *PGSQL) WriteMany(ctx context.Context, m ...interface{}) error {
-	_, err := p.engine.Insert(m...)
+func (p *PGSQL) WriteMany(ctx context.Context, m interface{}) error {
+	_, err := p.engine.Insert(m)
 	if err != nil {
 		return err
 	}

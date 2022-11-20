@@ -41,9 +41,10 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
+
 	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
-	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+	if ethBlock.Number == 0 {
+		return errors.Wrap(err, "block number must greater than zero")
 	}
 
 	transactions := ethBlock.Transactions
@@ -56,12 +57,11 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
-	logrus.Debugf("end InitActorCodeCidMap")
 
 	// TODO Should use pool be used to limit concurrency?
 	grp := new(errgroup.Group)
 	var (
-		contracts []interface{}
+		contracts []*evmmodel.Contract
 		lock      sync.Mutex
 	)
 
@@ -77,12 +77,10 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 					return errors.Wrap(err, "EthAddressFromHex failed")
 				}
 
-				logrus.Debugf("start EthGetTransactionReceipt")
 				receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
 				if err != nil {
 					return errors.Wrap(err, "EthGetTransactionReceipt failed")
 				}
-				logrus.Debugf("start EthGetTransactionReceipt")
 
 				// first, judge to address is evm actor
 				// second, judge from address is evm actor
@@ -170,7 +168,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(contracts) > 0 {
-		if err = storage.WriteMany(ctx, contracts...); err != nil {
+		if err = storage.WriteMany(ctx, &contracts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

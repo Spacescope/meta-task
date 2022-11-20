@@ -7,7 +7,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -20,7 +19,6 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/metrics"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/tasks"
-
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
 	"github.com/prometheus/client_golang/prometheus"
@@ -108,10 +106,10 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 			state = 2
 			desc = err.Error()
 			// TODO only test
-			if strings.Contains(err.Error(), "cannot find tipset") {
-				logrus.Warnf("task name %s height %d need retry", m.task.Name(), int(tipSet.Height()))
-				notFoundState = 1
-			}
+			// if strings.Contains(err.Error(), "cannot find tipset") {
+			// 	logrus.Warnf("task name %s height %d need retry", m.task.Name(), int(tipSet.Height()))
+			// 	notFoundState = 1
+			// }
 		}
 		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
 			int(tipSet.Height()), version, state, notFoundState, desc)
@@ -149,7 +147,6 @@ func (m *Manager) init(ctx context.Context) error {
 	if err = m.initRpc(); err != nil {
 		return errors.Wrap(err, "initRpc failed")
 	}
-	defer m.rpc.Close()
 
 	logrus.Info("init task")
 	if err = m.initTask(); err != nil {
@@ -207,7 +204,10 @@ func (m *Manager) Start(ctx context.Context) error {
 	if err = m.init(ctx); err != nil {
 		return errors.Wrap(err, "init failed")
 	}
-	defer m.chainNotifyMQ.Close()
+	defer func() {
+		m.chainNotifyMQ.Close()
+		m.rpc.Close()
+	}()
 
 	go func() {
 		_ = http.ListenAndServe("0.0.0.0:6060", nil)

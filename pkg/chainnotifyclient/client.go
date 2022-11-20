@@ -27,11 +27,11 @@ func TopicSignIn(host string, topic string) error {
 		"topic": topic,
 	}
 	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/topic", host)).SetBodyJsonMarshal(params).Do()
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
 	if resp.Err != nil {
 		return resp.Err
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
 	}
 	if resp.IsError() {
 		var errResponse ErrResponse
@@ -54,11 +54,11 @@ func ReportTipsetState(host string, topic string, height, version, state, notFou
 		"description":     desc,
 	}
 	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
 	if resp.Err != nil {
 		return resp.Err
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
 	}
 	if resp.IsError() {
 		var errResponse ErrResponse
