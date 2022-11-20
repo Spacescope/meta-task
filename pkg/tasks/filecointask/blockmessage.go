@@ -9,7 +9,6 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
-
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,7 +27,7 @@ func (b *BlockMessage) Model() interface{} {
 func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
 	var (
-		blockMessages []interface{}
+		blockMessages []*filecoinmodel.BlockMessage
 		lock          sync.Mutex
 	)
 
@@ -72,7 +71,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 	}
 
 	if len(blockMessages) > 0 {
-		if err := storage.WriteMany(ctx, blockMessages...); err != nil {
+		if err := storage.WriteMany(ctx, &blockMessages); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

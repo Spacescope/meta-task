@@ -31,7 +31,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.EthHashFromCid(tipSetCid)
+	hash, err := api.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
@@ -40,17 +40,21 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
 
+	if ethBlock.Number == 0 {
+		return errors.Wrap(err, "block number must greater than zero")
+	}
+
 	transactions := ethBlock.Transactions
 	if len(transactions) == 0 {
 		logrus.Debugf("can not find any transaction")
 		return nil
 	}
 
-	var evmTransaction []interface{}
+	var evmTransaction []*evmmodel.Transaction
 	for _, transaction := range transactions {
 		tm := transaction.(map[string]interface{})
 
-		et := evmmodel.Transaction{
+		et := &evmmodel.Transaction{
 			Height:               int64(tipSet.Height()),
 			Version:              version,
 			Hash:                 tm["hash"].(string),
@@ -120,7 +124,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.WriteMany(ctx, evmTransaction...); err != nil {
+		if err := storage.WriteMany(ctx, &evmTransaction); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

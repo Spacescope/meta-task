@@ -36,7 +36,7 @@ func (s *Std) Write(ctx context.Context, m interface{}) error {
 	return nil
 }
 
-func (s *Std) WriteMany(ctx context.Context, m ...interface{}) error {
+func (s *Std) WriteMany(ctx context.Context, m interface{}) error {
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		return errors.Wrap(err, "son.MarshalIndent failed")

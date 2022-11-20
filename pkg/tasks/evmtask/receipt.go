@@ -35,13 +35,17 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.EthHashFromCid(tipSetCid)
+	hash, err := api.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
 	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+	}
+
+	if ethBlock.Number == 0 {
+		return errors.Wrap(err, "block number must greater than zero")
 	}
 
 	transactions := ethBlock.Transactions
@@ -53,7 +57,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	// TODO Should use pool be used to limit concurrency?
 	grp := new(errgroup.Group)
 	var (
-		receipts []interface{}
+		receipts []*evmmodel.Receipt
 		lock     sync.Mutex
 	)
 	for _, transaction := range transactions {
@@ -107,7 +111,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receipts) > 0 {
-		if err := storage.WriteMany(ctx, receipts...); err != nil {
+		if err := storage.WriteMany(ctx, &receipts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

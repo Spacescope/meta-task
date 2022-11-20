@@ -30,7 +30,7 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}
 
-	var receiptModels []interface{}
+	var receiptModels []*filecoinmodel.Receipt
 	for idx, message := range messages {
 		msgLookup, err := rpc.Node().StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, true)
 		if err != nil {
@@ -55,7 +55,7 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receiptModels) > 0 {
-		if err = storage.WriteMany(ctx, receiptModels...); err != nil {
+		if err = storage.WriteMany(ctx, &receiptModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

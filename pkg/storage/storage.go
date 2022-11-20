@@ -25,7 +25,7 @@ type Storage interface {
 	InitFromConfig(ctx context.Context, storageCFG *config.Storage) error
 	Existed(m interface{}, height int64, version int) (bool, error)
 	Write(ctx context.Context, m interface{}) error
-	WriteMany(ctx context.Context, m ...interface{}) error
+	WriteMany(ctx context.Context, m interface{}) error
 }
 
 // Database sync table when storage is database

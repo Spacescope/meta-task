@@ -25,7 +25,7 @@ func (b *BlockParent) Model() interface{} {
 
 func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	var blockParents []interface{}
+	var blockParents []*filecoinmodel.BlockParent
 	for _, bh := range tipSet.Blocks() {
 		for _, parent := range bh.Parents {
 			blockParents = append(blockParents, &filecoinmodel.BlockParent{
@@ -37,7 +37,7 @@ func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		}
 	}
 	if len(blockParents) > 0 {
-		if err := storage.WriteMany(ctx, blockParents...); err != nil {
+		if err := storage.WriteMany(ctx, &blockParents); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}
