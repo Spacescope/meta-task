@@ -94,7 +94,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 					if err != nil {
 						return errors.Wrap(err, "ToFilecoinAddress failed")
 					}
-					toActor, err := rpc.Node().StateGetActor(ctx, toFilecoinAddress, types.EmptyTSK)
+					toActor, err := rpc.Node().StateGetActor(ctx, toFilecoinAddress, tipSet.Key())
 					if err != nil {
 						return errors.Wrap(err, "StateGetActor failed")
 					}
@@ -107,7 +107,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 					if err != nil {
 						return errors.Wrap(err, "ToFilecoinAddress failed")
 					}
-					fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, types.EmptyTSK)
+					fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, tipSet.Key())
 					if err != nil {
 						return errors.Wrap(err, "StateGetActor failed")
 					}
