@@ -23,7 +23,6 @@ type ErrResponse struct {
 
 // TopicSignIn register topic
 func TopicSignIn(host string, topic string) error {
-	return nil
 	params := map[string]string{
 		"topic": topic,
 	}
@@ -46,7 +45,6 @@ func TopicSignIn(host string, topic string) error {
 
 // ReportTipsetState report chain notify server task state
 func ReportTipsetState(host string, topic string, height, version, state, notFoundState int, desc string) error {
-	return nil
 	params := map[string]interface{}{
 		"topic":           topic,
 		"tipset":          height,
