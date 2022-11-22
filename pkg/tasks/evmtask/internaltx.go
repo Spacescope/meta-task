@@ -78,6 +78,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 					ParentHash: parentHash.String(),
 					From:       from.String(),
 					To:         to.String(),
+					Type:       uint64(subMessage.Method),
 					Value:      subMessage.Value.String(),
 				}
 				lock.Lock()

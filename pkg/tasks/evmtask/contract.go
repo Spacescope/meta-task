@@ -86,7 +86,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 				// second, judge from address is evm actor
 				// finally, it may be contract creation
 				var (
-					evmActor *types.Actor
+					evmActors []*types.Actor
 				)
 
 				if receipt.To != nil {
@@ -99,63 +99,62 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 						return errors.Wrap(err, "StateGetActor failed")
 					}
 					if utils.IsEVMActor(toActor.Code) {
-						evmActor = toActor
+						evmActors = append(evmActors, toActor)
 					}
 				}
-				if evmActor == nil {
-					fromFilecoinAddress, err := receipt.From.ToFilecoinAddress()
+				fromFilecoinAddress, err := receipt.From.ToFilecoinAddress()
+				if err != nil {
+					return errors.Wrap(err, "ToFilecoinAddress failed")
+				}
+				fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, types.EmptyTSK)
+				if err != nil {
+					return errors.Wrap(err, "StateGetActor failed")
+				}
+				if utils.IsEVMActor(fromActor.Code) {
+					evmActors = append(evmActors, fromActor)
+				}
+				// it means contract creation
+				if receipt.ContractAddress != nil && receipt.To == nil {
+					filecoinAddress, err := receipt.ContractAddress.ToFilecoinAddress()
 					if err != nil {
 						return errors.Wrap(err, "ToFilecoinAddress failed")
 					}
-					fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, types.EmptyTSK)
-					if err != nil {
-						return errors.Wrap(err, "StateGetActor failed")
+					// current height tipset not have actor state, so init evm actor
+					evmActor := &types.Actor{
+						Nonce:   0,
+						Balance: types.NewInt(0),
+						Address: &filecoinAddress,
 					}
-					if utils.IsEVMActor(fromActor.Code) {
-						evmActor = fromActor
-					}
-				}
-				if evmActor == nil {
-					// it means contract creation
-					if receipt.ContractAddress != nil && receipt.To == nil {
-						filecoinAddress, err := receipt.ContractAddress.ToFilecoinAddress()
-						if err != nil {
-							return errors.Wrap(err, "ToFilecoinAddress failed")
-						}
-						// current height tipset not have actor state, so init evm actor
-						evmActor = &types.Actor{
-							Nonce:   0,
-							Balance: types.NewInt(0),
-							Address: &filecoinAddress,
-						}
-					}
+					evmActors = append(evmActors, evmActor)
 				}
 
-				if evmActor != nil && evmActor.Address != nil {
-					ethAddress, err := api.EthAddressFromFilecoinAddress(*evmActor.Address)
-					if err != nil {
-						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
+				for _, evmActor := range evmActors {
+					if evmActor != nil && evmActor.Address != nil {
+						ethAddress, err := api.EthAddressFromFilecoinAddress(*evmActor.Address)
+						if err != nil {
+							return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
+						}
+						byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
+						if err != nil {
+							return errors.Wrap(err, "EthGetCode failed")
+						}
+						lock.Lock()
+						key := fmt.Sprintf("%d-%d-%s", tipSet.Height(), version, ethAddress.String())
+						_, ok := exist[key]
+						if !ok {
+							contracts = append(contracts, &evmmodel.Contract{
+								Height:          int64(tipSet.Height()),
+								Version:         version,
+								FilecoinAddress: evmActor.Address.String(),
+								Address:         ethAddress.String(),
+								Balance:         evmActor.Balance.String(),
+								Nonce:           evmActor.Nonce,
+								ByteCode:        hex.EncodeToString(byteCode),
+							})
+							exist[key] = true
+						}
+						lock.Unlock()
 					}
-					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
-					if err != nil {
-						return errors.Wrap(err, "EthGetCode failed")
-					}
-					lock.Lock()
-					key := fmt.Sprintf("%d-%d-%s", tipSet.Height(), version, ethAddress.String())
-					_, ok := exist[key]
-					if !ok {
-						contracts = append(contracts, &evmmodel.Contract{
-							Height:          int64(tipSet.Height()),
-							Version:         version,
-							FilecoinAddress: evmActor.Address.String(),
-							Address:         ethAddress.String(),
-							Balance:         evmActor.Balance.String(),
-							Nonce:           evmActor.Nonce,
-							ByteCode:        hex.EncodeToString(byteCode),
-						})
-						exist[key] = true
-					}
-					lock.Unlock()
 				}
 
 				return nil
