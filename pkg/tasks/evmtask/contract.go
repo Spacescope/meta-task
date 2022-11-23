@@ -82,6 +82,11 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 					return errors.Wrap(err, "EthGetTransactionReceipt failed")
 				}
 
+				// if failed, dont execute
+				if receipt.Status == 0 {
+					return nil
+				}
+
 				// first, judge to address is evm actor
 				// second, judge from address is evm actor
 				// finally, it may be contract creation
