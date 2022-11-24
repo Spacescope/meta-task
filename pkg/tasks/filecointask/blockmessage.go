@@ -34,8 +34,9 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 	grp := new(errgroup.Group)
 
 	for _, block := range tipSet.Blocks() {
+		blockTmp := block
 		grp.Go(func() error {
-			msg, err := rpc.Node().ChainGetBlockMessages(ctx, block.Cid())
+			msg, err := rpc.Node().ChainGetBlockMessages(ctx, blockTmp.Cid())
 			if err != nil {
 				return errors.Wrap(err, "ChainGetBlockMessages failed")
 			}
@@ -43,7 +44,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 				bm := &filecoinmodel.BlockMessage{
 					Height:     int64(tipSet.Height()),
 					Version:    version,
-					BlockCid:   block.Cid().String(),
+					BlockCid:   blockTmp.Cid().String(),
 					MessageCid: message.Cid().String(),
 				}
 				lock.Lock()
@@ -55,7 +56,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 				bm := &filecoinmodel.BlockMessage{
 					Height:     int64(tipSet.Height()),
 					Version:    version,
-					BlockCid:   block.Cid().String(),
+					BlockCid:   blockTmp.Cid().String(),
 					MessageCid: message.Cid().String(),
 				}
 				lock.Lock()
