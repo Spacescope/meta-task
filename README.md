@@ -9,32 +9,8 @@ The observatory task receives messages from the data notify server through the m
 2. Task abstraction, only need to implement the `pkg/tasks/Task` interface to write your filecoin parsing task.
 3. Support use metric trace task.
 
-## Config Sample
-
-```toml
-[task]
-name = "message" // taskname 
-
-[storage]
-name = "pgsql" // use postgresql 
-
-[storage.params]   // pgsql params
-dsn = "xx://xxx" 
-max_idle=1
-max_open=1
-
-[lotus]
-addr = "https://api.node.glif.io/rpc/v1"   // lotus node
-
-[chain_notify]
-host = ""       // data notify server host
-
-[chain_notify.mq]   // data notify server message queue 
-name = "redis"    // use redis
-
-[chain_notify.mq.params]   // redis params
-dsn = "redis://127.0.0.1:6379/0"
-```
+## Task Model
+block_header/block_message/block_parent/evm_block_header/evm_contract/evm_internal_tx/evm_receipt/evm_transaction/message/receipt
 
 ## Build And Run
 
@@ -48,3 +24,6 @@ synchronize the table structure to the specified database according to the model
 
 Dual-licensed under [MIT](https://github.com/Spacescope/observatory-task/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/Spacescope/observatory-task/blob/main/LICENSE-APACHE) 
 
+
+## Doc
+https://drive.google.com/drive/u/0/folders/1ptiBCy4lsO78KJqQR3oYv2TXrk3BrH8p

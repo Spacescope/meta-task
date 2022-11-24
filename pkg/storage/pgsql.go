@@ -62,6 +62,8 @@ func (p *PGSQL) InitFromConfig(ctx context.Context, storageCFG *config.Storage) 
 	}
 	p.engine.SetMapper(names.GonicMapper{})
 
+	p.engine.ShowSQL(false)
+
 	return nil
 }
 
@@ -75,18 +77,47 @@ func (p *PGSQL) Existed(m interface{}, height int64, version int) (bool, error) 
 }
 
 // Write insert one record into db
-func (p *PGSQL) Write(ctx context.Context, m interface{}) error {
-	_, err := p.engine.InsertOne(m)
+
+func (p *PGSQL) DelOldVersionAndWrite(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+	session := p.engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	_, err := session.Where("height = ? and version < ?", height, version).Delete(t)
 	if err != nil {
 		return err
 	}
+
+	_, err = session.InsertOne(m)
+	if err != nil {
+		return err
+	}
+	session.Commit()
+
 	return nil
 }
 
-func (p *PGSQL) WriteMany(ctx context.Context, m interface{}) error {
-	_, err := p.engine.Insert(m)
+func (p *PGSQL) DelOldVersionAndWriteMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+	session := p.engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	_, err := session.Where("height = ? and version < ?", height, version).Delete(t)
 	if err != nil {
 		return err
 	}
+
+	_, err = session.Insert(m)
+	if err != nil {
+		return err
+	}
+	session.Commit()
+
 	return nil
 }
