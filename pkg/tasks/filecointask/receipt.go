@@ -2,7 +2,6 @@ package filecointask
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
@@ -23,8 +22,7 @@ func (r *Receipt) Model() interface{} {
 	return new(filecoinmodel.Receipt)
 }
 
-func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
@@ -32,16 +30,9 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 
 	var receiptModels []*filecoinmodel.Receipt
 	for idx, message := range messages {
-		msgLookup, err := rpc.Node().StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, true)
+		msgLookup, err := rpc.Node().StateSearchMsg(ctx, tipSet.Key(), message.Cid, -1, false)
 		if err != nil {
 			return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
-		}
-		if msgLookup == nil || (msgLookup.Message.String() != message.Message.Cid().String()) {
-			if msgLookup != nil {
-				return errors.New(fmt.Sprintf("msg look may be nil or message id not equal, old:%s, new:%s",
-					message.Message.Cid(), msgLookup.Message.String()))
-			}
-			return errors.New("msglookup is nil")
 		}
 		receiptModels = append(receiptModels, &filecoinmodel.Receipt{
 			Height:     int64(tipSet.Height()),
