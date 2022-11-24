@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -207,10 +206,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	defer func() {
 		m.chainNotifyMQ.Close()
 		m.rpc.Close()
-	}()
-
-	go func() {
-		_ = http.ListenAndServe("0.0.0.0:6060", nil)
 	}()
 
 	go m.handleSignal()
