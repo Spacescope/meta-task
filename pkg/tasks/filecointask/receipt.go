@@ -8,6 +8,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // Receipt message receipt
@@ -34,6 +35,12 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		if err != nil {
 			return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
 		}
+
+		if msgLookup == nil {
+			log.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v", tipSet.Height(), message.Cid.String())
+			continue
+		}
+
 		receiptModels = append(receiptModels, &filecoinmodel.Receipt{
 			Height:     int64(tipSet.Height()),
 			Version:    version,
