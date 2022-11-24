@@ -28,8 +28,7 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	var err error
 
 	tipSetCid, err := tipSet.Key().Cid()
@@ -172,7 +171,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(contracts) > 0 {
-		if err = storage.WriteMany(ctx, &contracts); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(tipSet.Height()), version, &contracts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

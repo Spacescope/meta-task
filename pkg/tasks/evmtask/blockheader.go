@@ -23,8 +23,7 @@ func (b *BlockHeader) Model() interface{} {
 	return new(evmmodel.BlockHeader)
 }
 
-func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	tipSetCid, err := tipSet.Key().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
@@ -66,7 +65,8 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		Size:             uint64(ethBlock.Size),
 		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 	}
-	if err = storage.Write(ctx, blockHeader); err != nil {
+
+	if err = storage.DelOldVersionAndWrite(ctx, new(evmmodel.BlockHeader), int64(tipSet.Height()), version, blockHeader); err != nil {
 		return errors.Wrap(err, "storageWrite failed")
 	}
 

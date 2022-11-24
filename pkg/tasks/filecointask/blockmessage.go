@@ -71,7 +71,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 	}
 
 	if len(blockMessages) > 0 {
-		if err := storage.WriteMany(ctx, &blockMessages); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(tipSet.Height()), version, &blockMessages); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
