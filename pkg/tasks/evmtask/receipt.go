@@ -28,9 +28,13 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
-	tipSetCid, err := tipSet.Key().Cid()
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int,
+	tipSet *types.TipSet, storage storage.Storage) error {
+	if tipSet.Height() == 0 {
+		return nil
+	}
+
+	tipSetCid, err := tipSet.Parents().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
 	}
@@ -111,7 +115,8 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receipts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(tipSet.Height()), version, &receipts); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(tipSet.Height()), version,
+			&receipts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
