@@ -3,7 +3,6 @@ package evmtask
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
@@ -28,139 +27,65 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
-	var err error
-
-	tipSetCid, err := tipSet.Key().Cid()
-	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
-	}
-
-	hash, err := api.NewEthHashFromCid(tipSetCid)
-	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
-	}
-
-	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
-	if ethBlock.Number == 0 {
-		return errors.Wrap(err, "block number must greater than zero")
-	}
-
-	transactions := ethBlock.Transactions
-	if len(transactions) == 0 {
-		logrus.Debugf("can not find any transaction")
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc,
+	version int, tipSet *types.TipSet, storage storage.Storage) error {
+	if tipSet.Height() == 0 {
 		return nil
 	}
+
+	var err error
 
 	// lazy init actor map
 	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
 
-	// TODO Should use pool be used to limit concurrency?
-	grp := new(errgroup.Group)
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+	changedActors, err := rpc.Node().StateChangedActors(ctx, parentTs.ParentState(), tipSet.ParentState())
+	if err != nil {
+		return errors.Wrap(err, "StateChangedActors failed")
+	}
+
 	var (
 		contracts []*evmmodel.Contract
 		lock      sync.Mutex
 	)
-
-	exist := make(map[string]bool)
-
-	for _, transaction := range transactions {
-		tm, ok := transaction.(map[string]interface{})
-		if ok {
-			tm := tm
+	// TODO Should use pool be used to limit concurrency?
+	grp := new(errgroup.Group)
+	for _, actor := range changedActors {
+		if utils.IsEVMActor(actor.Code) && actor.Address != nil {
+			actor := actor
 			grp.Go(func() error {
-				ethHash, err := api.EthHashFromHex(tm["hash"].(string))
+				address := *actor.Address
+				actorState, err := rpc.Node().StateGetActor(ctx, address, tipSet.Key())
 				if err != nil {
-					return errors.Wrap(err, "EthAddressFromHex failed")
-				}
-
-				receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
-				if err != nil {
-					return errors.Wrap(err, "EthGetTransactionReceipt failed")
-				}
-
-				// if failed, dont execute
-				if receipt.Status == 0 {
+					logrus.Errorf("get actor err:%s", err)
 					return nil
 				}
-
-				// first, judge to address is evm actor
-				// second, judge from address is evm actor
-				// finally, it may be contract creation
-				var (
-					evmActors []*types.Actor
-				)
-
-				if receipt.To != nil {
-					toFilecoinAddress, err := receipt.To.ToFilecoinAddress()
+				if actorState != nil {
+					ethAddress, err := api.EthAddressFromFilecoinAddress(address)
 					if err != nil {
-						return errors.Wrap(err, "ToFilecoinAddress failed")
+						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 					}
-					toActor, err := rpc.Node().StateGetActor(ctx, toFilecoinAddress, types.EmptyTSK)
+					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
 					if err != nil {
-						return errors.Wrap(err, "StateGetActor failed")
+						return errors.Wrap(err, "EthGetCode failed")
 					}
-					if utils.IsEVMActor(toActor.Code) {
-						evmActors = append(evmActors, toActor)
-					}
+					lock.Lock()
+					contracts = append(contracts, &evmmodel.Contract{
+						Height:          int64(parentTs.Height()),
+						Version:         version,
+						FilecoinAddress: address.String(),
+						Address:         ethAddress.String(),
+						Balance:         actorState.Balance.String(),
+						Nonce:           actorState.Nonce,
+						ByteCode:        hex.EncodeToString(byteCode),
+					})
+					lock.Unlock()
 				}
-				fromFilecoinAddress, err := receipt.From.ToFilecoinAddress()
-				if err != nil {
-					return errors.Wrap(err, "ToFilecoinAddress failed")
-				}
-				fromActor, err := rpc.Node().StateGetActor(ctx, fromFilecoinAddress, types.EmptyTSK)
-				if err != nil {
-					return errors.Wrap(err, "StateGetActor failed")
-				}
-				if utils.IsEVMActor(fromActor.Code) {
-					evmActors = append(evmActors, fromActor)
-				}
-				// it means contract creation
-				if receipt.ContractAddress != nil && receipt.To == nil {
-					filecoinAddress, err := receipt.ContractAddress.ToFilecoinAddress()
-					if err != nil {
-						return errors.Wrap(err, "ToFilecoinAddress failed")
-					}
-					// current height tipset not have actor state, so init evm actor
-					evmActor := &types.Actor{
-						Nonce:   0,
-						Balance: types.NewInt(0),
-						Address: &filecoinAddress,
-					}
-					evmActors = append(evmActors, evmActor)
-				}
-
-				for _, evmActor := range evmActors {
-					if evmActor != nil && evmActor.Address != nil {
-						ethAddress, err := api.EthAddressFromFilecoinAddress(*evmActor.Address)
-						if err != nil {
-							return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
-						}
-						byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
-						if err != nil {
-							return errors.Wrap(err, "EthGetCode failed")
-						}
-						lock.Lock()
-						key := fmt.Sprintf("%d-%d-%s", tipSet.Height(), version, ethAddress.String())
-						_, ok := exist[key]
-						if !ok {
-							contracts = append(contracts, &evmmodel.Contract{
-								Height:          int64(tipSet.Height()),
-								Version:         version,
-								FilecoinAddress: evmActor.Address.String(),
-								Address:         ethAddress.String(),
-								Balance:         evmActor.Balance.String(),
-								Nonce:           evmActor.Nonce,
-								ByteCode:        hex.EncodeToString(byteCode),
-							})
-							exist[key] = true
-						}
-						lock.Unlock()
-					}
-				}
-
 				return nil
 			})
 		}
@@ -171,7 +96,8 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(contracts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(tipSet.Height()), version, &contracts); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(parentTs.Height()), version,
+			&contracts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

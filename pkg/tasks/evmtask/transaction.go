@@ -26,7 +26,11 @@ func (e *Transaction) Model() interface{} {
 
 func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
-	tipSetCid, err := tipSet.Key().Cid()
+	if tipSet.Height() == 0 {
+		return nil
+	}
+
+	tipSetCid, err := tipSet.Parents().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
 	}
@@ -55,7 +59,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		tm := transaction.(map[string]interface{})
 
 		et := &evmmodel.Transaction{
-			Height:               int64(tipSet.Height()),
+			Height:               int64(tipSet.Height() - 1),
 			Version:              version,
 			Hash:                 tm["hash"].(string),
 			BlockHash:            tm["blockHash"].(string),
@@ -124,7 +128,8 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(tipSet.Height()), version, &evmTransaction); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(tipSet.Height()), version,
+			&evmTransaction); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
