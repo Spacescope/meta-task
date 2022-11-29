@@ -32,7 +32,12 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 		return nil
 	}
 
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Parents())
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}
@@ -43,13 +48,11 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 		sm          sync.Map
 	)
 
-	parentHeight := tipSet.Height() - 1
-
 	grp := new(errgroup.Group)
 	for _, message := range messages {
 		message := message
 		grp.Go(func() error {
-			invocs, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
+			invocs, err := rpc.Node().StateReplay(ctx, tipSet.Key(), message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
@@ -78,7 +81,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 					return errors.Wrap(err, "EthHashFromCid failed")
 				}
 				internalTx := &evmmodel.InternalTX{
-					Height:     int64(parentHeight),
+					Height:     int64(parentTs.Height()),
 					Version:    version,
 					Hash:       hash.String(),
 					ParentHash: parentHash.String(),
@@ -101,7 +104,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	}
 
 	if len(internalTxs) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentHeight), version,
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version,
 			&internalTxs); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

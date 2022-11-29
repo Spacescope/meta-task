@@ -34,7 +34,12 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int,
 		return nil
 	}
 
-	tipSetCid, err := tipSet.Parents().Cid()
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	tipSetCid, err := parentTs.Parents().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
 	}
@@ -79,7 +84,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int,
 				}
 
 				r := &evmmodel.Receipt{
-					Height:            int64(tipSet.Height()),
+					Height:            int64(parentTs.Height()),
 					Version:           version,
 					TransactionHash:   receipt.TransactionHash.String(),
 					TransactionIndex:  int64(receipt.TransactionIndex),
@@ -115,7 +120,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int,
 	}
 
 	if len(receipts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(tipSet.Height()), version,
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(parentTs.Height()), version,
 			&receipts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

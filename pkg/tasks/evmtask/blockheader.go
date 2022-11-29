@@ -29,7 +29,12 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return nil
 	}
 
-	tipSetCid, err := tipSet.Parents().Cid()
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	tipSetCid, err := parentTs.Key().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
 	}
@@ -49,10 +54,8 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "block number must greater than zero")
 	}
 
-	parentHeight := int64(tipSet.Height() - 1)
-
 	blockHeader := &evmmodel.BlockHeader{
-		Height:           parentHeight,
+		Height:           int64(parentTs.Height()),
 		Version:          version,
 		Hash:             hash.String(),
 		ParentHash:       ethBlock.ParentHash.String(),
@@ -74,7 +77,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if err = storage.DelOldVersionAndWrite(ctx, new(evmmodel.BlockHeader),
-		parentHeight, version, blockHeader); err != nil {
+		int64(parentTs.Height()), version, blockHeader); err != nil {
 		return errors.Wrap(err, "storageWrite failed")
 	}
 

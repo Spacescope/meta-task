@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/filecoin-project/go-jsonrpc v0.1.9
 	github.com/filecoin-project/go-state-types v0.9.10-0.20221109071515-5536f160fe27
-	github.com/filecoin-project/lotus v1.18.0-rc5.0.20221117133129-158b3c802bc9
+	github.com/filecoin-project/lotus v1.18.0-rc5.0.20221118204509-33d2629eeb84
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.6
 	github.com/imroc/req/v3 v3.25.0
