@@ -116,17 +116,6 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 		}
 	}()
 
-	existed, err := m.storage.Existed(m.task.Model(), int64(m.message.TipSet.Height()), m.message.Version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.task.Name(),
-			int64(m.message.TipSet.Height()),
-			m.message.Version)
-		return nil
-	}
-
 	if err = m.task.Run(ctx, m.rpc, version, tipSet, m.storage); err != nil {
 		return errors.Wrap(err, "task.Run failed")
 	}

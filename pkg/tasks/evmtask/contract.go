@@ -44,6 +44,17 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc,
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
+
+	existed, err := storage.Existed(c.Model(), int64(parentTs.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", c.Name(),
+			int64(parentTs.Height()), version)
+		return nil
+	}
+
 	changedActors, err := rpc.Node().StateChangedActors(ctx, parentTs.ParentState(), tipSet.ParentState())
 	if err != nil {
 		return errors.Wrap(err, "StateChangedActors failed")

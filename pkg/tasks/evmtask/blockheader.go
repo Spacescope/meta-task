@@ -9,6 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/sirupsen/logrus"
 )
 
 // BlockHeader extract block header for evm
@@ -32,6 +33,16 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
+			int64(parentTs.Height()), version)
+		return nil
 	}
 
 	tipSetCid, err := parentTs.Key().Cid()

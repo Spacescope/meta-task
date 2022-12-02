@@ -9,6 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/sirupsen/logrus"
 )
 
 // BlockHeader extract block header
@@ -25,6 +26,17 @@ func (b *BlockHeader) Model() interface{} {
 
 func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
+
+	existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
+			int64(tipSet.Height()), version)
+		return nil
+	}
+
 	var blockHeaders []*filecoinmodel.BlockHeader
 	for _, bh := range tipSet.Blocks() {
 		blockHeaders = append(
@@ -44,7 +56,8 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(blockHeaders) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(tipSet.Height()), version, &blockHeaders); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(tipSet.Height()),
+			version, &blockHeaders); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}

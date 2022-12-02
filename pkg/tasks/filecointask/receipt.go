@@ -8,7 +8,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Receipt message receipt
@@ -23,7 +23,18 @@ func (r *Receipt) Model() interface{} {
 	return new(filecoinmodel.Receipt)
 }
 
-func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
+	storage storage.Storage) error {
+	existed, err := storage.Existed(r.Model(), int64(tipSet.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(),
+			int64(tipSet.Height()), version)
+		return nil
+	}
+
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
@@ -37,7 +48,9 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		}
 
 		if msgLookup == nil {
-			log.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v", tipSet.Height(), message.Cid.String())
+			logrus.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v",
+				tipSet.Height(),
+				message.Cid.String())
 			continue
 		}
 
@@ -53,7 +66,8 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receiptModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Receipt), int64(tipSet.Height()), version, &receiptModels); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Receipt), int64(tipSet.Height()), version,
+			&receiptModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
