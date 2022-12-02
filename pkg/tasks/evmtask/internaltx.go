@@ -52,7 +52,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	for _, message := range messages {
 		message := message
 		grp.Go(func() error {
-			invocs, err := rpc.Node().StateReplay(ctx, tipSet.Key(), message.Cid)
+			invocs, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
