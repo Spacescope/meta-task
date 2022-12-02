@@ -37,6 +37,16 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
+	existed, err := storage.Existed(i.Model(), int64(parentTs.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(),
+			int64(parentTs.Height()), version)
+		return nil
+	}
+
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")

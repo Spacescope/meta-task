@@ -9,6 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -26,6 +27,16 @@ func (b *BlockMessage) Model() interface{} {
 
 func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
 	storage storage.Storage) error {
+	existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
+	if err != nil {
+		return errors.Wrap(err, "storage.Existed failed")
+	}
+	if existed {
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
+			int64(tipSet.Height()), version)
+		return nil
+	}
+
 	var (
 		blockMessages []*filecoinmodel.BlockMessage
 		lock          sync.Mutex
@@ -72,7 +83,8 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 	}
 
 	if len(blockMessages) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(tipSet.Height()), version, &blockMessages); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(tipSet.Height()),
+			version, &blockMessages); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
