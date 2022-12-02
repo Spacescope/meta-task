@@ -99,7 +99,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		if err != nil {
 			return errors.Wrap(err, "ParseHexToUint64 failed")
 		}
-		et.TransactionIndex, err = utils.ParseHexToUint64(tm["transacionIndex"].(string))
+		et.TransactionIndex, err = utils.ParseHexToUint64(tm["transactionIndex"].(string))
 		if err != nil {
 			return errors.Wrap(err, "ParseHexToUint64 failed")
 		}
