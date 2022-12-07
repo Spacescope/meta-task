@@ -10,7 +10,18 @@ The observatory task receives messages from the data notify server through the m
 3. Support use metric trace task.
 
 ## Task Model
-block_header/block_message/block_parent/evm_block_header/evm_contract/evm_internal_tx/evm_receipt/evm_transaction/message/receipt
+* block_header
+* block_message
+* block_parent
+* message
+* receipt
+* raw_actor
+* evm_block_header
+* evm_internal_tx
+* evm_receipt
+* evm_transaction
+* evm_contract
+* evm_address
 
 ## Build And Run
 

@@ -42,11 +42,13 @@ func init() {
 		new(filecointask.BlockMessage),
 		new(filecointask.Message),
 		new(filecointask.Receipt),
+		new(filecointask.RawActor),
 
 		new(evmtask.BlockHeader),
 		new(evmtask.Transaction),
 		new(evmtask.Receipt),
 		new(evmtask.Contract),
 		new(evmtask.InternalTx),
+		new(evmtask.Address),
 	)
 }
