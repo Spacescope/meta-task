@@ -40,5 +40,21 @@ func InitActorCodeCidMap(ctx context.Context, node api.FullNode) error {
 
 // IsEVMActor judge is evm actor
 func IsEVMActor(codeCid cid.Cid) bool {
+	if len(m) == 0 {
+		panic("must call InitActorCodeCidMap first")
+	}
 	return m["evm"] == codeCid
+}
+
+// FindActorNameByCodeCid find actor name by code cide
+func FindActorNameByCodeCid(codeCid cid.Cid) string {
+	if len(m) == 0 {
+		panic("must call InitActorCodeCidMap first")
+	}
+	for name, c := range m {
+		if c == codeCid {
+			return name
+		}
+	}
+	return ""
 }
