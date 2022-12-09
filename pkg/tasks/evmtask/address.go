@@ -64,7 +64,8 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			to := msg.To
 			actor, err := rpc.Node().StateGetActor(ctx, to, tipSet.Key())
 			if err != nil {
-				return errors.Wrap(err, "StateGetActor failed")
+				logrus.Errorf("StateGetActor failed err:%s", err)
+				return nil
 			}
 			if to != builtintypes.EthereumAddressManagerActorAddr && !utils.IsEVMActor(actor.Code) {
 				return nil
@@ -82,7 +83,8 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			}
 			fromActor, err := rpc.Node().StateGetActor(ctx, from, tipSet.Key())
 			if err != nil {
-				return errors.Wrap(err, "StateGetActor failed")
+				logrus.Errorf("StateGetActor failed err:%s", err)
+				return nil
 			}
 			address := &evmmodel.Address{
 				Height:          int64(tipSet.Height()),
