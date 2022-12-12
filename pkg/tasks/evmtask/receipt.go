@@ -49,7 +49,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int,
 		return nil
 	}
 
-	tipSetCid, err := parentTs.Parents().Cid()
+	tipSetCid, err := parentTs.Key().Cid()
 	if err != nil {
 		return errors.Wrap(err, "tipSetCid failed")
 	}

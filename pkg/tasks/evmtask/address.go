@@ -86,6 +86,10 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 				logrus.Errorf("StateGetActor failed err:%s", err)
 				return nil
 			}
+			if utils.IsEVMActor(fromActor.Code) {
+				logrus.Infof("from [%s] is evm, ignore", ethFromAddress)
+				return nil
+			}
 			address := &evmmodel.Address{
 				Height:          int64(tipSet.Height()),
 				Version:         version,
