@@ -92,7 +92,7 @@ func (g *GasOutput) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet
 			GasPremium: t.MaxPriorityFeePerGas,
 			GasLimit:   int64(t.GasLimit),
 			Nonce:      t.Nonce,
-			// Method:             message.Method,
+			// Method:             r.Method,
 			// SizeBytes:          message.SizeBytes,
 
 			Status:             r.Status,
