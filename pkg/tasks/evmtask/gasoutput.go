@@ -44,7 +44,7 @@ func ancestralTipset(ctx context.Context, rpc *lotus.Rpc, t *types.TipSet, delay
 	return ancestralTipset(ctx, rpc, pTs, delay)
 }
 
-// In order to reuse the EVMBlockHeader/EVMMessage/EVMReceipt task's results, the GasOutput job may delay several Epochs to make sure three tasks are finished.
+// In order to reuse the EVMBlockHeader/EVMTransaction/EVMReceipt task's results, the GasOutput job may delay several Epochs to make sure three tasks are finished.
 // There will raise a flaw: this will work fine in incremental synchronization, but not in walk(full synchronization), gas_output should walk after three tasks are finished.
 func (g *GasOutput) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	ts, err := ancestralTipset(ctx, rpc, tipSet, 120)

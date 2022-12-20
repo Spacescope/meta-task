@@ -2,20 +2,20 @@ package evmmodel
 
 // derived_gas_outputs message receipt
 type GasOutputs struct {
-	Height             int64  `xorm:"notnull default 0 pk"`
-	Version            int    `xorm:"integer notnull default 0"`
-	StateRoot          string `xorm:"notnull"`
-	ParentBaseFee      string `xorm:"numeric notnull"`
-	Cid                string `xorm:"notnull"`
-	From               string `xorm:"notnull"`
-	To                 string `xorm:"notnull"`
-	Value              string `xorm:"numeric notnull"`
-	GasFeeCap          string `xorm:"numeric notnull"`
-	GasPremium         string `xorm:"numeric notnull"`
-	GasLimit           int64  `xorm:"notnull default 0"`
-	Nonce              uint64 `xorm:"notnull default 0"`
-	Method             uint64 `xorm:"notnull default 0"`
-	SizeBytes          int    `xorm:"notnull default 0"`
+	Height        int64  `xorm:"notnull default 0 pk"`
+	Version       int    `xorm:"integer notnull default 0"`
+	StateRoot     string `xorm:"notnull"`
+	ParentBaseFee string `xorm:"numeric notnull"`
+	Cid           string `xorm:"notnull"`
+	From          string `xorm:"notnull"`
+	To            string `xorm:"notnull"`
+	Value         string `xorm:"numeric notnull"`
+	GasFeeCap     string `xorm:"numeric notnull"`
+	GasPremium    string `xorm:"numeric notnull"`
+	GasLimit      int64  `xorm:"notnull default 0"`
+	Nonce         uint64 `xorm:"notnull default 0"`
+	// Method             uint64 `xorm:"notnull default 0"`
+	// SizeBytes          int    `xorm:"notnull default 0"`
 	Status             int64  `xorm:"notnull default 0"`
 	GasUsed            int64  `xorm:"notnull default 0"`
 	BaseFeeBurn        string `xorm:"numeric notnull"`
