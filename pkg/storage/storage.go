@@ -26,6 +26,8 @@ type Storage interface {
 	Existed(m interface{}, height int64, version int) (bool, error)
 	DelOldVersionAndWrite(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
 	DelOldVersionAndWriteMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
+
+	ExposeEngine() interface{}
 }
 
 // Database sync table when storage is database

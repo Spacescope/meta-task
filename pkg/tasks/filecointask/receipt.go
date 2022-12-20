@@ -23,42 +23,47 @@ func (r *Receipt) Model() interface{} {
 	return new(filecoinmodel.Receipt)
 }
 
-func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
-	existed, err := storage.Existed(r.Model(), int64(tipSet.Height()), version)
+func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+	if tipSet.Height() == 0 {
+		return nil
+	}
+
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	existed, err := storage.Existed(r.Model(), int64(parentTs.Height()), version)
 	if err != nil {
 		return errors.Wrap(err, "storage.Existed failed")
 	}
 	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(),
-			int64(tipSet.Height()), version)
+		logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(), int64(parentTs.Height()), version)
 		return nil
 	}
 
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
+	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}
 
 	var receiptModels []*filecoinmodel.Receipt
 	for idx, message := range messages {
-		msgLookup, err := rpc.Node().StateSearchMsg(ctx, tipSet.Key(), message.Cid, -1, false)
+		msgLookup, err := rpc.Node().StateSearchMsg(ctx, parentTs.Key(), message.Cid, -1, false)
 		if err != nil {
 			return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
 		}
 
 		if msgLookup == nil {
-			logrus.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v",
-				tipSet.Height(),
-				message.Cid.String())
+			logrus.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v", parentTs.Height(), message.Cid.String())
 			continue
 		}
 
 		receiptModels = append(receiptModels, &filecoinmodel.Receipt{
-			Height:     int64(tipSet.Height()),
+			Height:     int64(parentTs.Height()),
 			Version:    version,
 			MessageCID: message.Message.Cid().String(),
-			StateRoot:  tipSet.ParentState().String(),
+			StateRoot:  parentTs.ParentState().String(),
 			Idx:        idx,
 			ExitCode:   int64(msgLookup.Receipt.ExitCode),
 			GasUsed:    msgLookup.Receipt.GasUsed,
@@ -66,7 +71,7 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receiptModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Receipt), int64(tipSet.Height()), version,
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Receipt), int64(parentTs.Height()), version,
 			&receiptModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

@@ -69,11 +69,15 @@ func (p *PGSQL) InitFromConfig(ctx context.Context, storageCFG *config.Storage) 
 
 // Existed judge model exist or not
 func (p *PGSQL) Existed(m interface{}, height int64, version int) (bool, error) {
-	count, err := p.engine.Where("height=? and version=?", height, version).Count(m)
+	count, err := p.engine.Where("height = ? and version = ?", height, version).Count(m)
 	if err != nil {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (p *PGSQL) ExposeEngine() interface{} {
+	return p.engine
 }
 
 // Write insert one record into db
