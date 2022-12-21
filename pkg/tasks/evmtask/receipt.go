@@ -9,8 +9,8 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +28,8 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
+	storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -53,7 +54,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.NewEthHashFromCid(tipSetCid)
+	hash, err := ethtypes.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
@@ -83,7 +84,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		if ok {
 			tm := tm
 			grp.Go(func() error {
-				ethHash, err := api.EthHashFromHex(tm["hash"].(string))
+				ethHash, err := ethtypes.EthHashFromHex(tm["hash"].(string))
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromHex failed")
 				}

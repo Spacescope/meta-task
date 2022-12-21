@@ -7,8 +7,8 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,12 +50,12 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := api.NewEthHashFromCid(tipSetCid)
+	hash, err := ethtypes.NewEthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
 
-	var ethBlock api.EthBlock
+	var ethBlock ethtypes.EthBlock
 
 	ethBlock, err = rpc.Node().EthGetBlockByHash(ctx, hash, false)
 	if err != nil {

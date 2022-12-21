@@ -10,8 +10,8 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/utils"
-	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -77,11 +77,11 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc,
 					return nil
 				}
 				if actorState != nil {
-					ethAddress, err := api.EthAddressFromFilecoinAddress(address)
+					ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
 					if err != nil {
 						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 					}
-					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "")
+					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "latest")
 					if err != nil {
 						return errors.Wrap(err, "EthGetCode failed")
 					}

@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/filecoin-project/go-jsonrpc v0.1.9
-	github.com/filecoin-project/go-state-types v0.10.0-alpha-2
-	github.com/filecoin-project/lotus v1.18.1-0.20221130053646-cb838cedae49
+	github.com/filecoin-project/go-state-types v0.10.0-alpha-5
+	github.com/filecoin-project/lotus v1.18.2-0.20221220040739-a971868be49e
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.6
 	github.com/imroc/req/v3 v3.25.0
@@ -117,7 +117,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.23.2 // indirect
 	github.com/libp2p/go-libp2p-core v0.20.1 // indirect
-	github.com/libp2p/go-libp2p-pubsub v0.8.1 // indirect
+	github.com/libp2p/go-libp2p-pubsub v0.8.2 // indirect
 	github.com/libp2p/go-msgio v0.2.0 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/lucas-clemente/quic-go v0.29.1 // indirect

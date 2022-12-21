@@ -8,8 +8,8 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -66,7 +66,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
-			parentHash, err := api.NewEthHashFromCid(message.Cid)
+			parentHash, err := ethtypes.NewEthHashFromCid(message.Cid)
 			if err != nil {
 				return errors.Wrap(err, "EthHashFromCid failed")
 			}
@@ -78,15 +78,15 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 					continue
 				}
 
-				from, err := api.EthAddressFromFilecoinAddress(subMessage.From)
+				from, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.From)
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 				}
-				to, err := api.EthAddressFromFilecoinAddress(subMessage.To)
+				to, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.To)
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 				}
-				hash, err := api.NewEthHashFromCid(subMessage.Cid())
+				hash, err := ethtypes.NewEthHashFromCid(subMessage.Cid())
 				if err != nil {
 					return errors.Wrap(err, "EthHashFromCid failed")
 				}

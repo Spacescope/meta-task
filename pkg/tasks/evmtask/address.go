@@ -10,8 +10,8 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	builtintypes "github.com/filecoin-project/go-state-types/builtin"
-	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -77,7 +77,7 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 				return nil
 			}
 
-			ethFromAddress, err := api.EthAddressFromFilecoinAddress(from)
+			ethFromAddress, err := ethtypes.EthAddressFromFilecoinAddress(from)
 			if err != nil {
 				return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 			}
