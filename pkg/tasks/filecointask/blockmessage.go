@@ -25,15 +25,23 @@ func (b *BlockMessage) Model() interface{} {
 	return new(filecoinmodel.BlockMessage)
 }
 
-func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
-	existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
+func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+	if tipSet.Height() == 0 {
+		return nil
+	}
+
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
 	if err != nil {
 		return errors.Wrap(err, "storage.Existed failed")
 	}
 	if existed {
 		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-			int64(tipSet.Height()), version)
+			int64(parentTs.Height()), version)
 		return nil
 	}
 
@@ -44,7 +52,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 
 	grp := new(errgroup.Group)
 
-	for _, block := range tipSet.Blocks() {
+	for _, block := range parentTs.Blocks() {
 		blockTmp := block
 		grp.Go(func() error {
 			msg, err := rpc.Node().ChainGetBlockMessages(ctx, blockTmp.Cid())
@@ -53,7 +61,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 			}
 			for _, message := range msg.SecpkMessages {
 				bm := &filecoinmodel.BlockMessage{
-					Height:     int64(tipSet.Height()),
+					Height:     int64(parentTs.Height()),
 					Version:    version,
 					BlockCid:   blockTmp.Cid().String(),
 					MessageCid: message.Cid().String(),
@@ -65,7 +73,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 
 			for _, message := range msg.BlsMessages {
 				bm := &filecoinmodel.BlockMessage{
-					Height:     int64(tipSet.Height()),
+					Height:     int64(parentTs.Height()),
 					Version:    version,
 					BlockCid:   blockTmp.Cid().String(),
 					MessageCid: message.Cid().String(),
@@ -83,7 +91,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 	}
 
 	if len(blockMessages) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(tipSet.Height()),
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(parentTs.Height()),
 			version, &blockMessages); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

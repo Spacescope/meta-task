@@ -27,8 +27,7 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc,
-	version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}

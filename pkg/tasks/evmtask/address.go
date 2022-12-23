@@ -27,8 +27,7 @@ func (a *Address) Model() interface{} {
 	return new(evmmodel.Address)
 }
 
-func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	// lazy init actor map
 	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
