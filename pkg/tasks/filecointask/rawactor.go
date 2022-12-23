@@ -25,8 +25,7 @@ func (r *RawActor) Model() interface{} {
 	return new(filecoinmodel.RawActor)
 }
 
-func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -90,7 +89,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(rawActors) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(tipSet.Height()), version,
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version,
 			&rawActors); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

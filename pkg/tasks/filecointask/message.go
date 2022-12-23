@@ -24,26 +24,34 @@ func (m *Message) Model() interface{} {
 	return new(filecoinmodel.Message)
 }
 
-func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
-	existed, err := storage.Existed(m.Model(), int64(tipSet.Height()), version)
+func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+	if tipSet.Height() == 0 {
+		return nil
+	}
+
+	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+	if err != nil {
+		return errors.Wrap(err, "ChainGetTipSet failed")
+	}
+
+	existed, err := storage.Existed(m.Model(), int64(parentTs.Height()), version)
 	if err != nil {
 		return errors.Wrap(err, "storage.Existed failed")
 	}
 	if existed {
 		logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(),
-			int64(tipSet.Height()), version)
+			int64(parentTs.Height()), version)
 		return nil
 	}
 
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
+	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
 	}
 	var messageModels []*filecoinmodel.Message
 	for _, message := range messages {
 		messageModels = append(messageModels, &filecoinmodel.Message{
-			Height:     int64(tipSet.Height()),
+			Height:     int64(parentTs.Height()),
 			Version:    version,
 			Cid:        message.Cid.String(),
 			From:       message.Message.From.String(),
@@ -60,7 +68,7 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(messageModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(tipSet.Height()), version,
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version,
 			&messageModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}

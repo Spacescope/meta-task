@@ -24,9 +24,7 @@ func (b *BlockParent) Model() interface{} {
 	return new(filecoinmodel.BlockParent)
 }
 
-func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
-
+func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
 	existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
 	if err != nil {
 		return errors.Wrap(err, "storage.Existed failed")
