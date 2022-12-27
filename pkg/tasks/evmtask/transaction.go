@@ -89,12 +89,6 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 				et.To = v
 			}
 		}
-		if _, ok := tm["gasLimit"]; ok {
-			et.GasLimit, err = utils.ParseHexToUint64(tm["gasLimit"].(string))
-			if err != nil {
-				return errors.Wrap(err, "ParseHexToUint64 failed")
-			}
-		}
 
 		et.ChainID, err = utils.ParseHexToUint64(tm["chainId"].(string))
 		if err != nil {
@@ -116,7 +110,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		if err != nil {
 			return errors.Wrap(err, "ParseHexToUint64 failed")
 		}
-		et.Gas, err = utils.ParseHexToUint64(tm["gas"].(string))
+		et.GasLimit, err = utils.ParseHexToUint64(tm["gas"].(string))
 		if err != nil {
 			return errors.Wrap(err, "ParseHexToUint64 failed")
 		}
