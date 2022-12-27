@@ -15,7 +15,6 @@ type Transaction struct {
 	Value                string `xorm:"varchar(100) notnull default '0'"`
 	Type                 uint64 `xorm:"integer notnull default 0"`
 	Input                string `xorm:"text notnull default ''"`
-	Gas                  uint64 `xorm:"bigint notnull default 0"`
 	GasLimit             uint64 `xorm:"bigint notnull default 0"`
 	MaxFeePerGas         string `xorm:"varchar(100) notnull default ''"`
 	MaxPriorityFeePerGas string `xorm:"varchar(100) notnull default ''"`
