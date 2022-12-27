@@ -2,6 +2,10 @@
 
 The observatory task receives messages from the data notify server through the message queue for parsing and storage of various filecoin data tasks.
 
+These tasks are focused on extracting metadata. And the [aggregate tasks](https://github.com/Spacescope/aggregate-task), depending on the metadata extracted from the observatory tasks.
+
+Remember, if you modify the models of this repository, please make sure the [models of aggregate-task](https://github.com/Spacescope/aggregate-task/tree/main/pkg/models/dependentmodel) are also changed.
+
 ## Feature
 
 1. Support a variety of storage methods, currently std output (for debug) and postgresql have been implemented. For
@@ -30,6 +34,9 @@ The observatory task receives messages from the data notify server through the m
 
 > When you use database as storage, you do not need to manually create a database, the program will automatically 
 synchronize the table structure to the specified database according to the model required by the tasks in the configuration
+
+
+## 
 
 ## License
 
