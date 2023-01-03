@@ -32,7 +32,7 @@ func GetTask(name string) Task {
 type Task interface {
 	Name() string
 	Model() interface{}
-	Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error
+	Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error
 }
 
 func init() {

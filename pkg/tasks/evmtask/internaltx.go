@@ -26,8 +26,7 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet,
-	storage storage.Storage) error {
+func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -37,14 +36,16 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
-	existed, err := storage.Existed(i.Model(), int64(parentTs.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(),
-			int64(parentTs.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(i.Model(), int64(parentTs.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(),
+				int64(parentTs.Height()), version)
+			return nil
+		}
 	}
 
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())

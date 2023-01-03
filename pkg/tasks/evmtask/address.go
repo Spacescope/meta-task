@@ -27,20 +27,21 @@ func (a *Address) Model() interface{} {
 	return new(evmmodel.Address)
 }
 
-func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	// lazy init actor map
 	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
 
-	existed, err := storage.Existed(a.Model(), int64(tipSet.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(),
-			int64(tipSet.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(a.Model(), int64(tipSet.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(), int64(tipSet.Height()), version)
+			return nil
+		}
 	}
 
 	var (
