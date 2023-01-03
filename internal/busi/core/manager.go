@@ -27,6 +27,7 @@ import (
 type Message struct {
 	Version int           `json:"version"`
 	TipSet  *types.TipSet `json:"tipset"`
+	Force   bool          `json:"force"`
 }
 
 // Manager task manage
@@ -90,7 +91,7 @@ func (m *Manager) topicSignIn() error {
 	return chainnotifyclient.TopicSignIn(m.cfg.ChainNotify.Host, m.task.Name())
 }
 
-func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet) error {
+func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet, force bool) error {
 	timer := prometheus.NewTimer(metrics.TaskCost.WithLabelValues(m.task.Name()))
 	defer timer.ObserveDuration()
 
@@ -109,14 +110,13 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 			// 	notFoundState = 1
 			// }
 		}
-		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
-			int(tipSet.Height()), version, state, notFoundState, desc)
+		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()), version, state, notFoundState, desc)
 		if err != nil {
 			logrus.Errorf("ReportTipsetState err:%s", err)
 		}
 	}()
 
-	if err = m.task.Run(ctx, m.rpc, version, tipSet, m.storage); err != nil {
+	if err = m.task.Run(ctx, m.rpc, version, tipSet, force, m.storage); err != nil {
 		return errors.Wrap(err, "task.Run failed")
 	}
 	return nil
@@ -166,8 +166,7 @@ func (m *Manager) handleSignal() {
 	msg := m.message
 	m.lock.Unlock()
 	if msg != nil {
-		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, m.task.Name(),
-			int(msg.TipSet.Height()), msg.Version, 2, 2, "sigterm")
+		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, false, m.task.Name(), int(msg.TipSet.Height()), msg.Version, 2, 2, "sigterm")
 	}
 	m.cancel()
 }
@@ -232,7 +231,7 @@ func (m *Manager) Start(ctx context.Context) error {
 
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
-		if err = m.runTask(ctx, m.message.Version, m.message.TipSet); err != nil {
+		if err = m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force); err != nil {
 			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version,
 				errors.Wrap(err, "runTask failed"))
 			continue

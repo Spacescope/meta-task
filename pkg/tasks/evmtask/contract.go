@@ -27,7 +27,7 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -44,14 +44,16 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
-	existed, err := storage.Existed(c.Model(), int64(parentTs.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", c.Name(),
-			int64(parentTs.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(c.Model(), int64(parentTs.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", c.Name(),
+				int64(parentTs.Height()), version)
+			return nil
+		}
 	}
 
 	changedActors, err := rpc.Node().StateChangedActors(ctx, parentTs.ParentState(), tipSet.ParentState())

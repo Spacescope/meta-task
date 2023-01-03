@@ -24,7 +24,7 @@ func (e *Transaction) Model() interface{} {
 	return new(evmmodel.Transaction)
 }
 
-func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -34,14 +34,16 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
-	existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(),
-			int64(parentTs.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(),
+				int64(parentTs.Height()), version)
+			return nil
+		}
 	}
 
 	tipSetCid, err := parentTs.Key().Cid()

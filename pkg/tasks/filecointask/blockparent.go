@@ -24,15 +24,17 @@ func (b *BlockParent) Model() interface{} {
 	return new(filecoinmodel.BlockParent)
 }
 
-func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
-	existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-			int64(tipSet.Height()), version)
-		return nil
+func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
+	if !force {
+		existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
+				int64(tipSet.Height()), version)
+			return nil
+		}
 	}
 
 	var blockParents []*filecoinmodel.BlockParent

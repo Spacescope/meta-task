@@ -108,7 +108,7 @@ func (p *PGSQL) DelOldVersionAndWriteMany(ctx context.Context, t interface{}, he
 		return err
 	}
 
-	_, err := session.Where("height = ? and version < ?", height, version).Delete(t)
+	_, err := session.Where("height = ? and version <= ?", height, version).Delete(t)
 	if err != nil {
 		return err
 	}

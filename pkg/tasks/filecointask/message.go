@@ -24,7 +24,7 @@ func (m *Message) Model() interface{} {
 	return new(filecoinmodel.Message)
 }
 
-func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -34,14 +34,16 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
-	existed, err := storage.Existed(m.Model(), int64(parentTs.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(),
-			int64(parentTs.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(m.Model(), int64(parentTs.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(),
+				int64(parentTs.Height()), version)
+			return nil
+		}
 	}
 
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())

@@ -44,7 +44,7 @@ func TopicSignIn(host string, topic string) error {
 }
 
 // ReportTipsetState report chain notify server task state
-func ReportTipsetState(host string, topic string, height, version, state, notFoundState int, desc string) error {
+func ReportTipsetState(host string, force bool, topic string, height, version, state, notFoundState int, desc string) error {
 	params := map[string]interface{}{
 		"topic":           topic,
 		"tipset":          height,
@@ -53,7 +53,7 @@ func ReportTipsetState(host string, topic string, height, version, state, notFou
 		"not_found_state": notFoundState,
 		"description":     desc,
 	}
-	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/task_state", host)).SetBodyJsonMarshal(params).Do()
+	resp := reqClient.Post(fmt.Sprintf("%s/api/v1/task_state?force=%v", host, force)).SetBodyJsonMarshal(params).Do()
 	if resp.Err != nil {
 		return resp.Err
 	}

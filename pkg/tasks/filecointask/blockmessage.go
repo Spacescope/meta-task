@@ -25,7 +25,7 @@ func (b *BlockMessage) Model() interface{} {
 	return new(filecoinmodel.BlockMessage)
 }
 
-func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, storage storage.Storage) error {
+func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -35,14 +35,16 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 		return errors.Wrap(err, "ChainGetTipSet failed")
 	}
 
-	existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
-	if err != nil {
-		return errors.Wrap(err, "storage.Existed failed")
-	}
-	if existed {
-		logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-			int64(parentTs.Height()), version)
-		return nil
+	if !force {
+		existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
+		if err != nil {
+			return errors.Wrap(err, "storage.Existed failed")
+		}
+		if existed {
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
+				int64(parentTs.Height()), version)
+			return nil
+		}
 	}
 
 	var (
