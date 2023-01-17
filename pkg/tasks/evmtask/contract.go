@@ -27,7 +27,8 @@ func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
 }
 
-func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
+func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
+	storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -82,7 +83,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 					if err != nil {
 						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 					}
-					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "latest")
+					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "pending")
 					if err != nil {
 						return errors.Wrap(err, "EthGetCode failed")
 					}
