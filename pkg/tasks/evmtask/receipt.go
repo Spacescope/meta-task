@@ -94,6 +94,9 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 				if err != nil {
 					return errors.Wrap(err, "EthGetTransactionReceipt failed")
 				}
+				if receipt == nil {
+					return nil
+				}
 
 				r := &evmmodel.Receipt{
 					Height:            int64(parentTs.Height()),
