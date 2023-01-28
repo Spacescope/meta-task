@@ -24,7 +24,8 @@ func (b *BlockHeader) Model() interface{} {
 	return new(evmmodel.BlockHeader)
 }
 
-func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
+func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
+	storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -51,13 +52,12 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := ethtypes.NewEthHashFromCid(tipSetCid)
+	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
 
 	var ethBlock ethtypes.EthBlock
-
 	ethBlock, err = rpc.Node().EthGetBlockByHash(ctx, hash, false)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")

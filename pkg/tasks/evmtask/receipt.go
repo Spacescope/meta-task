@@ -28,7 +28,8 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
+	storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -55,7 +56,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		return errors.Wrap(err, "tipSetCid failed")
 	}
 
-	hash, err := ethtypes.NewEthHashFromCid(tipSetCid)
+	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
@@ -85,7 +86,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		if ok {
 			tm := tm
 			grp.Go(func() error {
-				ethHash, err := ethtypes.EthHashFromHex(tm["hash"].(string))
+				ethHash, err := ethtypes.ParseEthHash(tm["hash"].(string))
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromHex failed")
 				}

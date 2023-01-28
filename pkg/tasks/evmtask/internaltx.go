@@ -26,7 +26,8 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
+func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
+	storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -67,9 +68,9 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			if err != nil {
 				return errors.Wrap(err, "StateReplay failed")
 			}
-			parentHash, err := ethtypes.NewEthHashFromCid(message.Cid)
+			parentHash, err := rpc.Node().EthGetTransactionHashByCid(ctx, message.Cid)
 			if err != nil {
-				return errors.Wrap(err, "EthHashFromCid failed")
+				return errors.Wrap(err, "EthGetTransactionHashByCid failed")
 			}
 			for _, subCall := range invocs.ExecutionTrace.Subcalls {
 				subMessage := subCall.Msg
@@ -87,7 +88,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 				if err != nil {
 					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
 				}
-				hash, err := ethtypes.NewEthHashFromCid(subMessage.Cid())
+				hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
 				if err != nil {
 					return errors.Wrap(err, "EthHashFromCid failed")
 				}
