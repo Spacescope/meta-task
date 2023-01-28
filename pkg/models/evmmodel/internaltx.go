@@ -6,7 +6,7 @@ type InternalTX struct {
 	Version    int    `xorm:"integer notnull pk"`
 	Hash       string `xorm:"varchar(255) pk notnull index default ''"`
 	ParentHash string `xorm:"varchar(255) notnull index default ''"`
-	Type       uint64 `xorm:"integer notnull default 0"`
+	Type       uint64 `xorm:"bigint notnull default 0"`
 	From       string `xorm:"varchar(255) notnull index default ''"`
 	To         string `xorm:"varchar(255) notnull index default ''"`
 	Value      string `xorm:"varchar(100) notnull default '0'"`
