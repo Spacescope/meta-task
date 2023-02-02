@@ -13,6 +13,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
 	"github.com/Spacescore/observatory-task/pkg/chainnotifymq"
 	"github.com/Spacescore/observatory-task/pkg/errors"
+	"github.com/Spacescore/observatory-task/pkg/healthcheck"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/metrics"
 	"github.com/Spacescore/observatory-task/pkg/storage"
@@ -110,7 +111,8 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 			// 	notFoundState = 1
 			// }
 		}
-		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()), version, state, notFoundState, desc)
+		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()),
+			version, state, notFoundState, desc)
 		if err != nil {
 			logrus.Errorf("ReportTipsetState err:%s", err)
 		}
@@ -166,7 +168,8 @@ func (m *Manager) handleSignal() {
 	msg := m.message
 	m.lock.Unlock()
 	if msg != nil {
-		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, false, m.task.Name(), int(msg.TipSet.Height()), msg.Version, 2, 2, "sigterm")
+		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, false, m.task.Name(), int(msg.TipSet.Height()),
+			msg.Version, 2, 2, "sigterm")
 	}
 	m.cancel()
 }
@@ -196,6 +199,8 @@ func (m *Manager) Start(ctx context.Context) error {
 	}()
 
 	go m.handleSignal()
+
+	go healthcheck.Init(m.cfg.HealthCheck.Addr)
 
 	for {
 		select {

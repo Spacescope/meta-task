@@ -14,7 +14,7 @@ import (
 )
 
 type Rpc struct {
-	mux    sync.Mutex
+	mux    sync.RWMutex
 	node   api.FullNode
 	addr   string
 	ctx    context.Context
@@ -35,8 +35,8 @@ func NewRPC(ctx context.Context, addr string) (*Rpc, error) {
 }
 
 func (r *Rpc) Node() api.FullNode {
-	r.mux.Lock()
-	defer r.mux.Unlock()
+	r.mux.RLock()
+	defer r.mux.RUnlock()
 	return r.node
 }
 

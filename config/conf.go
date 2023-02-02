@@ -12,6 +12,11 @@ type CFG struct {
 	ChainNotify *ChainNotify `toml:"chain_notify"`
 	Task        *Task        `toml:"task"`
 	Log         Log          `toml:"log"`
+	HealthCheck HealthCheck  `toml:"health_check"`
+}
+
+type HealthCheck struct {
+	Addr string `toml:"addr"`
 }
 
 type Log struct {

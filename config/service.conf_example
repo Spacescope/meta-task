@@ -21,3 +21,6 @@
 
 [chain_notify.mq.params]
     dsn = "redis://127.0.0.1:6379/0"
+
+[health_check]
+    addr = ":8001"

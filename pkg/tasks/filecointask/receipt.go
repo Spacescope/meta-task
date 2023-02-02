@@ -51,13 +51,14 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 
 	var receiptModels []*filecoinmodel.Receipt
 	for idx, message := range messages {
-		msgLookup, err := rpc.Node().StateSearchMsg(ctx, parentTs.Key(), message.Cid, -1, false)
+		msgLookup, err := rpc.Node().StateSearchMsg(ctx, types.EmptyTSK, message.Cid, -1, false)
 		if err != nil {
 			return errors.Wrap(err, "rpcv1/StateSearchMsg failed")
 		}
 
 		if msgLookup == nil {
-			logrus.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v", parentTs.Height(), message.Cid.String())
+			logrus.Infof("filecoin task, receipt StateSearchMsg return nil, height: %v, message.Cid: %v",
+				parentTs.Height(), message.Cid.String())
 			continue
 		}
 
