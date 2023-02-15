@@ -13,7 +13,7 @@ type Message struct {
 	GasLimit   int64  `xorm:"bigint notnull default 0"`
 	SizeBytes  int    `xorm:"bigint notnull default 0"`
 	Nonce      uint64 `xorm:"bigint notnull default 0"`
-	Method     uint64 `xorm:"integer notnull default 0"`
+	Method     uint64 `xorm:"bigint notnull default 0"`
 	Params     string `xorm:"text notnull default ''"`
 	CreatedAt  int64  `xorm:"created"`
 }
