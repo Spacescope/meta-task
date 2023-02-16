@@ -1,7 +1,7 @@
 BUILD_DIR = ./build
 .PHONY: build test
 
-build:
+binary:
 	go build -o bin/observatory-task cmd/observatorytask/main.go
 
 test:
