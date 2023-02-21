@@ -9,12 +9,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// @title spacescope data extraction notify backend
+// @version 1.0
+// @description spacescope data extraction api backend
+// @termsOfService http://swagger.io/terms/
+
+// @host meta-task-api.spacescope.io
+// @BasePath /
+
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "observatory-task",
-		Short: "ot",
+		Use:   "meta-task",
+		Short: "mt",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := busi.Start(); err != nil {
+			if err := entry(); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -25,6 +33,10 @@ func NewRootCommand() *cobra.Command {
 	flags.StringVar(&busi.Flags.Config, "conf", "", "path of the configuration file")
 
 	return cmd
+}
+
+func entry() error {
+	return busi.Start()
 }
 
 func main() {
