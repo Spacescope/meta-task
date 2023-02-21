@@ -175,7 +175,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			log.Fatalf("json.Unmarshal err: %v", err)
 		}
 
-		log.Infof("consume tipset: %v, version: %d", m.message.TipSet.Height(), m.message.Version)
+		log.Infof("consume tipset: %v/version: %d", m.message.TipSet.Height(), m.message.Version)
 		m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force)
 	}
 }
