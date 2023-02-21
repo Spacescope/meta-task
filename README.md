@@ -1,8 +1,8 @@
-# observatory-task
+# Metadata-task
 
-The observatory task receives messages from the data notify server through the message queue for parsing and storage of various filecoin data tasks.
+The metadata task receives messages from the data notify server through the message queue for parsing and storage of various filecoin data tasks.
 
-These tasks are focused on extracting metadata. And the [aggregate tasks](https://github.com/Spacescope/aggregate-task), depending on the metadata extracted from the observatory tasks.
+These tasks are focused on extracting metadata. And the [aggregate tasks](https://github.com/Spacescope/aggregate-task), depending on the metadata extracted from the Metadata tasks.
 
 Remember, if you modify the models of this repository, please make sure the [models of aggregate-task](https://github.com/Spacescope/aggregate-task/tree/main/pkg/models/dependentmodel) are also changed.
 
@@ -30,7 +30,7 @@ Remember, if you modify the models of this repository, please make sure the [mod
 ## Build And Run
 
 1. `make build`
-2. `bin/observatory-task --conf=<config path>`
+2. `bin/meta-task --conf=<config path>`
 
 > When you use database as storage, you do not need to manually create a database, the program will automatically 
 synchronize the table structure to the specified database according to the model required by the tasks in the configuration
@@ -40,7 +40,7 @@ synchronize the table structure to the specified database according to the model
 
 ## License
 
-Dual-licensed under [MIT](https://github.com/Spacescope/observatory-task/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/Spacescope/observatory-task/blob/main/LICENSE-APACHE) 
+Dual-licensed under [MIT](https://github.com/Spacescope/meta-task/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/Spacescope/meta-task/blob/main/LICENSE-APACHE) 
 
 
 ## Doc
