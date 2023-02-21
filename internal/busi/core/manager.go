@@ -95,14 +95,8 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 		if err != nil {
 			state = 2
 			desc = err.Error()
-			// TODO only test
-			// if strings.Contains(err.Error(), "cannot find tipset") {
-			// 	logrus.Warnf("task name %s height %d need retry", m.task.Name(), int(tipSet.Height()))
-			// 	notFoundState = 1
-			// }
 		}
-		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()),
-			version, state, notFoundState, desc)
+		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()), version, state, notFoundState, desc)
 		if err != nil {
 			logrus.Errorf("ReportTipsetState err:%s", err)
 		}
@@ -199,9 +193,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
 		if err = m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force); err != nil {
-			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version,
-				errors.Wrap(err, "runTask failed"))
-			continue
+			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version, errors.Wrap(err, "runTask failed"))
 		}
 	}
 }
