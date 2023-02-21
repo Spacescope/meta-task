@@ -53,7 +53,7 @@ func (m *Manager) initStorage(ctx context.Context) error {
 		return errors.New("can not found storage")
 	}
 	if err := m.storage.InitFromConfig(ctx, m.cfg.Storage); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("InitFromConfig failed"))
+		return errors.Wrap(err, "InitFromConfig failed")
 	}
 	return nil
 }
