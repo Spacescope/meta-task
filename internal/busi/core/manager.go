@@ -10,7 +10,6 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
 	"github.com/Spacescore/observatory-task/pkg/chainnotifymq"
 	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/healthcheck"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/tasks"
@@ -175,8 +174,6 @@ func (m *Manager) Start(ctx context.Context) error {
 		m.chainNotifyMQ.Close()
 		m.rpc.Close()
 	}()
-
-	go healthcheck.Init(m.cfg.HealthCheck.Addr)
 
 	for {
 		select {

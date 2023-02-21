@@ -17,6 +17,8 @@ func Start() error {
 	}
 	logrus.SetReportCaller(true)
 
+	go HttpServerStart(cfg.Listen.Addr)
+
 	manager := core.NewManager(cfg)
 	if err != nil {
 		return err

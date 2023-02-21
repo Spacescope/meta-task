@@ -1,0 +1,24 @@
+info:
+  contact: {}
+paths:
+  /api/v1/ping:
+    get:
+      consumes:
+      - application/json
+      - application/json
+      description: Healthy examination
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: pong
+          schema:
+            type: string
+        "500":
+          description: error:...
+          schema:
+            type: string
+      tags:
+      - Sys
+swagger: "2.0"
