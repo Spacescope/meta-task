@@ -1,5 +1,11 @@
+basePath: /
+host: meta-task-api.spacescope.io
 info:
   contact: {}
+  description: spacescope data extraction api backend
+  termsOfService: http://swagger.io/terms/
+  title: spacescope data extraction notify backend
+  version: "1.0"
 paths:
   /api/v1/ping:
     get:

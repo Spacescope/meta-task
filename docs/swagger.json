@@ -1,8 +1,14 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "spacescope data extraction api backend",
+        "title": "spacescope data extraction notify backend",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "version": "1.0"
     },
+    "host": "meta-task-api.spacescope.io",
+    "basePath": "/",
     "paths": {
         "/api/v1/ping": {
             "get": {

@@ -9,6 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// @title spacescope data extraction notify backend
+// @version 1.0
+// @description spacescope data extraction api backend
+// @termsOfService http://swagger.io/terms/
+
+// @host meta-task-api.spacescope.io
+// @BasePath /
+
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "meta-task",
