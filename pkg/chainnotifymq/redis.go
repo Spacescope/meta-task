@@ -63,7 +63,7 @@ func (r *Redis) FetchMessage(ctx context.Context) (mqmessage.Message, error) {
 		if err == vredis.Nil {
 			return nil, nil
 		}
-		return nil, errors.Wrap(err, "brpop failed")
+		return nil, err
 	}
 	if len(result) > 1 {
 		return &mqmessage.NormalMessage{Value: []byte(result[1])}, nil

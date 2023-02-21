@@ -13,7 +13,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/tasks"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Message from chain notify server
@@ -94,12 +94,13 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 		}
 		err = chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, force, m.task.Name(), int(tipSet.Height()), version, state, notFoundState, desc)
 		if err != nil {
-			logrus.Errorf("ReportTipsetState err:%s", err)
+			log.Errorf("ReportTipsetState err: %s", err)
 		}
 	}()
 
 	if err = m.task.Run(ctx, m.rpc, version, tipSet, force, m.storage); err != nil {
-		return errors.Wrap(err, "task.Run failed")
+		log.Errorf("extract height: %v err: %v", tipSet.Height(), err)
+		return err
 	}
 	return nil
 }
@@ -107,32 +108,32 @@ func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet
 func (m *Manager) init(ctx context.Context) error {
 	var err error
 
-	logrus.Info("init storage")
+	log.Info("init storage")
 	if err = m.initStorage(ctx); err != nil {
 		return errors.Wrap(err, "initStorage failed")
 	}
 
-	logrus.Info("init lotus rpc")
+	log.Info("init lotus rpc")
 	if err = m.initRpc(); err != nil {
 		return errors.Wrap(err, "initRpc failed")
 	}
 
-	logrus.Info("init task")
+	log.Info("init task")
 	if err = m.initTask(); err != nil {
 		return errors.Wrap(err, "initTask failed")
 	}
 
-	logrus.Info("init initChainNotifyMQ")
+	log.Info("init initChainNotifyMQ")
 	if err = m.initChainNotifyMQ(ctx); err != nil {
 		return errors.Wrap(err, "initChainNotifyMQ failed")
 	}
 
-	logrus.Info("topic sign in")
+	log.Info("topic sign in")
 	if err = m.topicSignIn(); err != nil {
 		return errors.Wrap(err, "topicSignIn failed")
 	}
 
-	logrus.Info("sync storage")
+	log.Info("sync storage")
 	if err = m.syncStorage(); err != nil {
 		return errors.Wrap(err, "syncTable failed")
 	}
@@ -164,7 +165,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	for {
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
-			logrus.Errorf("%v", errors.Wrap(err, "fetch message failed"))
+			log.Errorf("fetch message err: %v", err)
 			continue
 		}
 		if message == nil {
@@ -172,14 +173,11 @@ func (m *Manager) Start(ctx context.Context) error {
 		}
 
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
-			logrus.Errorf("%v", errors.Wrap(err, "json.Unmarshal failed"))
+			log.Errorf("json.Unmarshal err: %v", err)
 			continue
 		}
 
-		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
-
-		if err = m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force); err != nil {
-			logrus.Errorf("tipset:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version, errors.Wrap(err, "runTask failed"))
-		}
+		log.Infof("consume tipset: %v, version: %d", m.message.TipSet.Height(), m.message.Version)
+		m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force)
 	}
 }
