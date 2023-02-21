@@ -59,8 +59,9 @@ func (r *Rpc) lotusHandshake() error {
 			defer r.mux.Unlock()
 			r.node = &node
 			r.closer = closer
+			return nil
 		}
-		log.Errorf("connecting to lotus failed: %s", err)
+		log.Errorf("connecting to lotus failed: %v", err)
 		if numsec <= MAXSLEEP/2 {
 			time.Sleep(time.Duration(numsec) * time.Second)
 		}
