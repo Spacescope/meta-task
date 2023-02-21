@@ -47,8 +47,7 @@ func (r *Rpc) Close() {
 func (r *Rpc) connect() error {
 	var err error
 	var node v1api.FullNodeStruct
-	r.closer, err = jsonrpc.NewMergeClient(r.ctx, r.addr, "Filecoin",
-		api.GetInternalStructs(&node), nil)
+	r.closer, err = jsonrpc.NewMergeClient(r.ctx, r.addr, "Filecoin", api.GetInternalStructs(&node), nil)
 	if err != nil {
 		return errors.Wrap(err, "NewMergeClient failed")
 	}

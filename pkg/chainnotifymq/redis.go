@@ -58,8 +58,7 @@ func (r *Redis) InitFromConfig(ctx context.Context, cfg *config.ChainNotify, que
 }
 
 func (r *Redis) FetchMessage(ctx context.Context) (mqmessage.Message, error) {
-	reply := r.client.BRPop(ctx, 30*time.Second, r.queueName)
-	result, err := reply.Result()
+	result, err := r.client.BRPop(ctx, time.Second*30, r.queueName).Result()
 	if err != nil {
 		if err == vredis.Nil {
 			return nil, nil

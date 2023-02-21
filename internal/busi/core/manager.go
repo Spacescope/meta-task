@@ -181,7 +181,7 @@ func (m *Manager) Start(ctx context.Context) error {
 
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
-			logrus.Errorf("%+v", errors.Wrap(err, "fetch message failed"))
+			logrus.Errorf("%v", errors.Wrap(err, "fetch message failed"))
 			continue
 		}
 		if message == nil {
@@ -191,7 +191,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		m.lock.Lock()
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
 			m.lock.Unlock()
-			logrus.Errorf("%+v", errors.Wrap(err, "json.Unmarshal failed"))
+			logrus.Errorf("%v", errors.Wrap(err, "json.Unmarshal failed"))
 			continue
 		}
 		m.lock.Unlock()

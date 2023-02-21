@@ -11,8 +11,8 @@ import (
 
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "observatory-task",
-		Short: "ot",
+		Use:   "meta-task",
+		Short: "mt",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := entry(); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
