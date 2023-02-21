@@ -165,16 +165,14 @@ func (m *Manager) Start(ctx context.Context) error {
 	for {
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
-			log.Errorf("fetch message err: %v", err)
-			continue
+			log.Fatalf("fetch message err: %v", err)
 		}
 		if message == nil {
 			continue
 		}
 
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
-			log.Errorf("json.Unmarshal err: %v", err)
-			continue
+			log.Fatalf("json.Unmarshal err: %v", err)
 		}
 
 		log.Infof("consume tipset: %v, version: %d", m.message.TipSet.Height(), m.message.Version)

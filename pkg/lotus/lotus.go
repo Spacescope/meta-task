@@ -70,17 +70,19 @@ func (r *Rpc) lotusHandshake() error {
 }
 
 func (r *Rpc) keepallive() {
-	select {
-	case <-time.After(time.Second * 30): // hearbeat
-		if _, err := r.node.ChainHead(context.Background()); err != nil {
-			log.Errorf("keepallive failed, err: %s", err)
-			r.closer()
-			if err = r.lotusHandshake(); err != nil {
-				log.Error("system exit")
-				os.Exit(1)
+	for {
+		select {
+		case <-time.After(time.Second * 60): // hearbeat
+			if _, err := r.node.ChainHead(context.Background()); err != nil {
+				log.Errorf("keepallive failed, err: %s", err)
+				r.closer()
+				if err = r.lotusHandshake(); err != nil {
+					log.Error("lotusHandshake error: %s", err)
+					os.Exit(1)
+				}
+				log.Info("lotus reconnect success.")
 			}
-			log.Info("reconnect success.")
+			log.Info("Ticktack: call heartbeat method.")
 		}
-	default:
 	}
 }
