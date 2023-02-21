@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/Spacescore/observatory-task/config"
 	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
@@ -176,14 +175,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	}()
 
 	for {
-		select {
-		case <-m.ctx.Done():
-			logrus.Warnf("receive sigterm, exit")
-			return nil
-		default:
-		}
-
-		// reset
 		m.lock.Lock()
 		m.message = nil
 		m.lock.Unlock()
@@ -191,11 +182,9 @@ func (m *Manager) Start(ctx context.Context) error {
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
 			logrus.Errorf("%+v", errors.Wrap(err, "fetch message failed"))
-			time.Sleep(1 * time.Second)
 			continue
 		}
 		if message == nil {
-			// logrus.Debugf("can not get any message, waiting...")
 			continue
 		}
 
@@ -213,15 +202,6 @@ func (m *Manager) Start(ctx context.Context) error {
 			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version,
 				errors.Wrap(err, "runTask failed"))
 			continue
-		}
-
-		// do it if mq can commit
-		if committableMQ, ok := m.chainNotifyMQ.(chainnotifymq.CommittableMQ); ok {
-			if err = committableMQ.Commit(ctx, message); err != nil {
-				logrus.Errorf("tipset height:%d, version:%d %+v", m.message.TipSet.Height(), m.message.Version,
-					errors.Wrap(err, "message commit failed"))
-				continue
-			}
 		}
 	}
 }
