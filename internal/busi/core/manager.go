@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/Spacescore/observatory-task/config"
 	"github.com/Spacescore/observatory-task/pkg/chainnotifyclient"
@@ -29,7 +28,6 @@ type Manager struct {
 	cfg           *config.CFG
 	ctx           context.Context
 	cancel        context.CancelFunc
-	lock          sync.Mutex
 	chainNotifyMQ chainnotifymq.MQ
 	storage       storage.Storage
 	task          tasks.Task
@@ -169,10 +167,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	}()
 
 	for {
-		m.lock.Lock()
-		m.message = nil
-		m.lock.Unlock()
-
 		message, err := m.chainNotifyMQ.FetchMessage(ctx)
 		if err != nil {
 			logrus.Errorf("%v", errors.Wrap(err, "fetch message failed"))
@@ -182,13 +176,10 @@ func (m *Manager) Start(ctx context.Context) error {
 			continue
 		}
 
-		m.lock.Lock()
 		if err = json.Unmarshal(message.Val(), &m.message); err != nil {
-			m.lock.Unlock()
 			logrus.Errorf("%v", errors.Wrap(err, "json.Unmarshal failed"))
 			continue
 		}
-		m.lock.Unlock()
 
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
