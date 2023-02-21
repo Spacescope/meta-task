@@ -14,7 +14,7 @@ func NewRootCommand() *cobra.Command {
 		Use:   "observatory-task",
 		Short: "ot",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := busi.Start(); err != nil {
+			if err := entry(); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -25,6 +25,10 @@ func NewRootCommand() *cobra.Command {
 	flags.StringVar(&busi.Flags.Config, "conf", "", "path of the configuration file")
 
 	return cmd
+}
+
+func entry() error {
+	return busi.Start()
 }
 
 func main() {

@@ -3,10 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/Spacescore/observatory-task/config"
@@ -15,12 +12,10 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/healthcheck"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
-	"github.com/Spacescore/observatory-task/pkg/metrics"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/tasks"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/goccy/go-json"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -93,9 +88,6 @@ func (m *Manager) topicSignIn() error {
 }
 
 func (m *Manager) runTask(ctx context.Context, version int, tipSet *types.TipSet, force bool) error {
-	timer := prometheus.NewTimer(metrics.TaskCost.WithLabelValues(m.task.Name()))
-	defer timer.ObserveDuration()
-
 	var err error
 
 	defer func() {
@@ -160,20 +152,6 @@ func (m *Manager) init(ctx context.Context) error {
 	return err
 }
 
-func (m *Manager) handleSignal() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGTERM)
-	<-c
-	m.lock.Lock()
-	msg := m.message
-	m.lock.Unlock()
-	if msg != nil {
-		chainnotifyclient.ReportTipsetState(m.cfg.ChainNotify.Host, false, m.task.Name(), int(msg.TipSet.Height()),
-			msg.Version, 2, 2, "sigterm")
-	}
-	m.cancel()
-}
-
 func (m *Manager) syncStorage() error {
 	db, ok := m.storage.(storage.Database)
 	if ok {
@@ -197,8 +175,6 @@ func (m *Manager) Start(ctx context.Context) error {
 		m.chainNotifyMQ.Close()
 		m.rpc.Close()
 	}()
-
-	go m.handleSignal()
 
 	go healthcheck.Init(m.cfg.HealthCheck.Addr)
 
