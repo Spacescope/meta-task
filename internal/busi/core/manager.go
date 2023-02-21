@@ -26,8 +26,6 @@ type Message struct {
 // Manager task manage
 type Manager struct {
 	cfg           *config.CFG
-	ctx           context.Context
-	cancel        context.CancelFunc
 	chainNotifyMQ chainnotifymq.MQ
 	storage       storage.Storage
 	task          tasks.Task
@@ -42,7 +40,7 @@ func NewManager(cfg *config.CFG) *Manager {
 
 func (m *Manager) initRpc() error {
 	var err error
-	m.rpc, err = lotus.NewRPC(m.ctx, m.cfg.Lotus.Addr)
+	m.rpc, err = lotus.NewRPC(context.Background(), m.cfg.Lotus.Addr)
 	if err != nil {
 		return errors.Wrap(err, "NewRPC")
 	}
@@ -155,9 +153,6 @@ func (m *Manager) syncStorage() error {
 // Start run task manager
 func (m *Manager) Start(ctx context.Context) error {
 	var err error
-
-	m.ctx, m.cancel = context.WithCancel(ctx)
-
 	if err = m.init(ctx); err != nil {
 		return errors.Wrap(err, "init failed")
 	}
@@ -184,7 +179,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		logrus.Infof("get message, tipset height:%d, version:%d", m.message.TipSet.Height(), m.message.Version)
 
 		if err = m.runTask(ctx, m.message.Version, m.message.TipSet, m.message.Force); err != nil {
-			logrus.Errorf("tipset height:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version, errors.Wrap(err, "runTask failed"))
+			logrus.Errorf("tipset:%d, version:%d err:%+v", m.message.TipSet.Height(), m.message.Version, errors.Wrap(err, "runTask failed"))
 		}
 	}
 }

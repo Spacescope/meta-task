@@ -19,11 +19,7 @@ func Start() error {
 
 	go HttpServerStart(cfg.Listen.Addr)
 
-	manager := core.NewManager(cfg)
-	if err != nil {
-		return err
-	}
-	if err = manager.Start(context.Background()); err != nil {
+	if err = core.NewManager(cfg).Start(context.Background()); err != nil {
 		return err
 	}
 
