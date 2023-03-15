@@ -24,8 +24,7 @@ func (e *Transaction) Model() interface{} {
 	return new(evmmodel.Transaction)
 }
 
-func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
+func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}

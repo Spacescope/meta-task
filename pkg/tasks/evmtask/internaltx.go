@@ -25,8 +25,7 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
+func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}

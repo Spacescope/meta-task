@@ -26,8 +26,7 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
