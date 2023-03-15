@@ -9,7 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockHeader extract block header for evm
@@ -24,8 +24,7 @@ func (b *BlockHeader) Model() interface{} {
 	return new(evmmodel.BlockHeader)
 }
 
-func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
+func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	if tipSet.Height() == 0 {
 		return nil
 	}
@@ -41,8 +40,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -93,5 +91,6 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "storageWrite failed")
 	}
 
+	log.Infof("process height: %v evm_block_header", tipSet.Height())
 	return nil
 }

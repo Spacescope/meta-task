@@ -10,7 +10,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type Transaction struct {
@@ -41,8 +41,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -67,7 +66,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 
 	transactions := ethBlock.Transactions
 	if len(transactions) == 0 {
-		logrus.Debugf("can not find any transaction")
+		log.Debugf("can not find any transaction")
 		return nil
 	}
 
@@ -95,57 +94,66 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 
 		et.ChainID, err = utils.ParseHexToUint64(tm["chainId"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 		et.Nonce, err = utils.ParseHexToUint64(tm["nonce"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 		et.BlockNumber, err = utils.ParseHexToUint64(tm["blockNumber"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 		et.TransactionIndex, err = utils.ParseHexToUint64(tm["transactionIndex"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 		et.Type, err = utils.ParseHexToUint64(tm["type"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 		et.GasLimit, err = utils.ParseHexToUint64(tm["gas"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseHexToUint64 failed")
+			log.Errorf("ParseHexToUint64 failed: %v", err)
+			continue
 		}
 
 		et.V, err = utils.ParseStrToHex(tm["v"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseStrToHex failed")
+			log.Errorf("ParseStrToHex failed: %v", err)
+			continue
 		}
 		et.R, err = utils.ParseStrToHex(tm["r"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseStrToHex failed")
+			log.Errorf("ParseStrToHex failed: %v", err)
+			continue
 		}
 		et.S, err = utils.ParseStrToHex(tm["s"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseStrToHex failed")
+			log.Errorf("ParseStrToHex failed: %v", err)
+			continue
 		}
 		et.Input, err = utils.ParseStrToHex(tm["input"].(string))
 		if err != nil {
-			return errors.Wrap(err, "ParseStrToHex failed")
+			log.Errorf("ParseStrToHex failed: %v", err)
+			continue
 		}
 
 		evmTransaction = append(evmTransaction, et)
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version,
-			&evmTransaction); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d transaction", len(evmTransaction))
+	log.Infof("process %d evm transaction", len(evmTransaction))
 
 	return nil
 }
