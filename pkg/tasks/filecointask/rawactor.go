@@ -10,7 +10,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // RawActor extract raw actor
@@ -26,14 +26,8 @@ func (r *RawActor) Model() interface{} {
 }
 
 func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
-	var err error
-
 	// lazy init actor map
-	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
+	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
 
@@ -48,8 +42,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -66,7 +59,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	for _, ac := range changedActors {
 		actorName := utils.FindActorNameByCodeCid(ac.Code)
 		if actorName == "" {
-			logrus.Warn("can not find cid:[%s] actor name")
+			log.Warn("can not find cid:[%s] actor name")
 			continue
 		}
 		ra := &filecoinmodel.RawActor{
@@ -91,13 +84,12 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(rawActors) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version,
-			&rawActors); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d raw actor", len(rawActors))
+	log.Infof("Tipset[%v] has been process %d raw actor", tipSet.Height(), len(rawActors))
 
 	return nil
 }

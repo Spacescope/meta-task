@@ -2,15 +2,13 @@ package filecointask
 
 import (
 	"context"
-	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockMessage block and message
@@ -26,10 +24,6 @@ func (b *BlockMessage) Model() interface{} {
 }
 
 func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -41,63 +35,49 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
 
 	var (
 		blockMessages []*filecoinmodel.BlockMessage
-		lock          sync.Mutex
 	)
 
-	grp := new(errgroup.Group)
-
 	for _, block := range parentTs.Blocks() {
-		blockTmp := block
-		grp.Go(func() error {
-			msg, err := rpc.Node().ChainGetBlockMessages(ctx, blockTmp.Cid())
-			if err != nil {
-				return errors.Wrap(err, "ChainGetBlockMessages failed")
+		msg, err := rpc.Node().ChainGetBlockMessages(ctx, block.Cid())
+		if err != nil {
+			log.Errorf("ChainGetBlockMessages error: %v", err)
+			continue
+		}
+		for _, message := range msg.SecpkMessages {
+			bm := &filecoinmodel.BlockMessage{
+				Height:     int64(parentTs.Height()),
+				Version:    version,
+				BlockCid:   block.Cid().String(),
+				MessageCid: message.Cid().String(),
 			}
-			for _, message := range msg.SecpkMessages {
-				bm := &filecoinmodel.BlockMessage{
-					Height:     int64(parentTs.Height()),
-					Version:    version,
-					BlockCid:   blockTmp.Cid().String(),
-					MessageCid: message.Cid().String(),
-				}
-				lock.Lock()
-				blockMessages = append(blockMessages, bm)
-				lock.Unlock()
-			}
+			blockMessages = append(blockMessages, bm)
+		}
 
-			for _, message := range msg.BlsMessages {
-				bm := &filecoinmodel.BlockMessage{
-					Height:     int64(parentTs.Height()),
-					Version:    version,
-					BlockCid:   blockTmp.Cid().String(),
-					MessageCid: message.Cid().String(),
-				}
-				lock.Lock()
-				blockMessages = append(blockMessages, bm)
-				lock.Unlock()
+		for _, message := range msg.BlsMessages {
+			bm := &filecoinmodel.BlockMessage{
+				Height:     int64(parentTs.Height()),
+				Version:    version,
+				BlockCid:   block.Cid().String(),
+				MessageCid: message.Cid().String(),
 			}
-			return nil
-		})
-	}
-
-	if err := grp.Wait(); err != nil {
-		return err
+			blockMessages = append(blockMessages, bm)
+		}
 	}
 
 	if len(blockMessages) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(parentTs.Height()),
-			version, &blockMessages); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockMessage), int64(parentTs.Height()), version, &blockMessages); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
+
+	log.Infof("Tipset[%v] has been process %d messages", tipSet.Height(), len(blockMessages))
 
 	return nil
 }

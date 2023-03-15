@@ -12,8 +12,7 @@ import (
 	builtintypes "github.com/filecoin-project/go-state-types/builtin"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 type Address struct {
@@ -39,18 +38,16 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(), int64(tipSet.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(), int64(tipSet.Height()), version)
 			return nil
 		}
 	}
 
 	var (
 		evmAddresses []*evmmodel.Address
-		lock         sync.Mutex
 		m            sync.Map
 	)
 
-	grp := new(errgroup.Group)
 	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
@@ -60,53 +57,47 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			continue
 		}
 		msg := message.Message
-		grp.Go(func() error {
-			to := msg.To
-			actor, err := rpc.Node().StateGetActor(ctx, to, tipSet.Key())
-			if err != nil {
-				logrus.Errorf("StateGetActor failed err:%s", err)
-				return nil
-			}
-			if to != builtintypes.EthereumAddressManagerActorAddr && !utils.IsEVMActor(actor.Code) {
-				return nil
-			}
-			from := msg.From
-			// 去重
-			_, loaded := m.LoadOrStore(from, true)
-			if loaded {
-				return nil
-			}
 
-			ethFromAddress, err := ethtypes.EthAddressFromFilecoinAddress(from)
-			if err != nil {
-				return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
-			}
-			fromActor, err := rpc.Node().StateGetActor(ctx, from, tipSet.Key())
-			if err != nil {
-				logrus.Errorf("StateGetActor failed err:%s", err)
-				return nil
-			}
-			if utils.IsEVMActor(fromActor.Code) {
-				logrus.Infof("from [%s] is evm, ignore", ethFromAddress)
-				return nil
-			}
-			address := &evmmodel.Address{
-				Height:          int64(tipSet.Height()),
-				Version:         version,
-				Address:         ethFromAddress.String(),
-				FilecoinAddress: from.String(),
-				Balance:         fromActor.Balance.String(),
-				Nonce:           fromActor.Nonce,
-			}
-			lock.Lock()
-			evmAddresses = append(evmAddresses, address)
-			lock.Unlock()
-			return nil
-		})
-	}
+		// -----------
+		to := msg.To
+		actor, err := rpc.Node().StateGetActor(ctx, to, tipSet.Key())
+		if err != nil {
+			log.Errorf("StateGetActor[tipset: %v, height: %v] failed err:%s", tipSet.Key(), tipSet.Height(), err)
+			continue
+		}
+		if to != builtintypes.EthereumAddressManagerActorAddr && !utils.IsEVMActor(actor.Code) {
+			continue
+		}
+		from := msg.From
+		// 去重
+		_, loaded := m.LoadOrStore(from, true)
+		if loaded {
+			continue
+		}
 
-	if err := grp.Wait(); err != nil {
-		return err
+		ethFromAddress, err := ethtypes.EthAddressFromFilecoinAddress(from)
+		if err != nil {
+			log.Errorf("EthAddressFromFilecoinAddress: %v failed: %v", from, err)
+			continue
+		}
+		fromActor, err := rpc.Node().StateGetActor(ctx, from, tipSet.Key())
+		if err != nil {
+			log.Errorf("StateGetActor[from: %v, tipset: %v] failed: %v", from, tipSet.Height(), err)
+			continue
+		}
+		if utils.IsEVMActor(fromActor.Code) {
+			log.Infof("from [%s] is evm, ignore", ethFromAddress)
+			continue
+		}
+		address := &evmmodel.Address{
+			Height:          int64(tipSet.Height()),
+			Version:         version,
+			Address:         ethFromAddress.String(),
+			FilecoinAddress: from.String(),
+			Balance:         fromActor.Balance.String(),
+			Nonce:           fromActor.Nonce,
+		}
+		evmAddresses = append(evmAddresses, address)
 	}
 
 	if len(evmAddresses) > 0 {
@@ -115,6 +106,6 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
-	logrus.Debugf("process %d evm_address", len(evmAddresses))
+	log.Infof("Tipset[%v] has been process %d evm_address", tipSet.Height(), len(evmAddresses))
 	return nil
 }

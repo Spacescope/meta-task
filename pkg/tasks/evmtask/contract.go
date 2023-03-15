@@ -3,7 +3,6 @@ package evmtask
 import (
 	"context"
 	"encoding/hex"
-	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
@@ -12,8 +11,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 type Contract struct {
@@ -28,14 +26,8 @@ func (c *Contract) Model() interface{} {
 }
 
 func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
-	var err error
-
 	// lazy init actor map
-	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
+	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
 
@@ -50,7 +42,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", c.Name(), int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", c.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -62,58 +54,48 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 
 	var (
 		contracts []*evmmodel.Contract
-		lock      sync.Mutex
 	)
-	// TODO Should use pool be used to limit concurrency?
-	grp := new(errgroup.Group)
+
 	for _, actor := range changedActors {
 		if utils.IsEVMActor(actor.Code) && actor.Address != nil {
 			actor := actor
-			grp.Go(func() error {
-				address := *actor.Address
-				actorState, err := rpc.Node().StateGetActor(ctx, address, tipSet.Key())
+			address := *actor.Address
+			actorState, err := rpc.Node().StateGetActor(ctx, address, tipSet.Key())
+			if err != nil {
+				log.Errorf("get actor err:%s", err)
+				continue
+			}
+			if actorState != nil {
+				ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
 				if err != nil {
-					logrus.Errorf("get actor err:%s", err)
-					return nil
+					log.Errorf("EthAddressFromFilecoinAddress: %v failed: %v", address, err)
+					continue
 				}
-				if actorState != nil {
-					ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
-					if err != nil {
-						return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
-					}
-					byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "pending")
-					if err != nil {
-						return errors.Wrap(err, "EthGetCode failed")
-					}
-					lock.Lock()
-					contracts = append(contracts, &evmmodel.Contract{
-						Height:          int64(parentTs.Height()),
-						Version:         version,
-						FilecoinAddress: address.String(),
-						Address:         ethAddress.String(),
-						Balance:         actorState.Balance.String(),
-						Nonce:           actorState.Nonce,
-						ByteCode:        hex.EncodeToString(byteCode),
-					})
-					lock.Unlock()
+				byteCode, err := rpc.Node().EthGetCode(ctx, ethAddress, "pending")
+				if err != nil {
+					log.Errorf("Get EthGetCode failed: %v, address: %v", err, ethAddress.String())
+					continue
 				}
-				return nil
-			})
+				contracts = append(contracts, &evmmodel.Contract{
+					Height:          int64(parentTs.Height()),
+					Version:         version,
+					FilecoinAddress: address.String(),
+					Address:         ethAddress.String(),
+					Balance:         actorState.Balance.String(),
+					Nonce:           actorState.Nonce,
+					ByteCode:        hex.EncodeToString(byteCode),
+				})
+			}
 		}
 	}
 
-	if err := grp.Wait(); err != nil {
-		return err
-	}
-
 	if len(contracts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(parentTs.Height()), version,
-			&contracts); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(parentTs.Height()), version, &contracts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d contract", len(contracts))
+	log.Infof("Tipset[%v] has been process %d evm_contract", tipSet.Height(), len(contracts))
 
 	return nil
 }

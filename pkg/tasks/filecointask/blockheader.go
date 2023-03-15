@@ -9,7 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockHeader extract block header
@@ -25,10 +25,6 @@ func (b *BlockHeader) Model() interface{} {
 }
 
 func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -40,8 +36,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -65,10 +60,12 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(blockHeaders) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()),
-			version, &blockHeaders); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}
+
+	log.Infof("Tipset[%v] has been process", tipSet.Height())
+
 	return nil
 }

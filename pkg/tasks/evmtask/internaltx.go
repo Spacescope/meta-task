@@ -10,8 +10,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 // InternalTx task for parse internal transaction
@@ -26,12 +25,7 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
+func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -43,8 +37,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -56,72 +49,64 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 
 	var (
 		internalTxs []*evmmodel.InternalTX
-		lock        sync.Mutex
 		sm          sync.Map
 	)
 
-	grp := new(errgroup.Group)
 	for _, message := range messages {
-		message := message
-		grp.Go(func() error {
-			invocs, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
+		invocs, err := rpc.Node().StateReplay(ctx, parentTs.Key(), message.Cid)
+		if err != nil {
+			log.Errorf("StateReplay[message.Cid: %v] failed: %v", message.Cid.String(), err)
+			continue
+		}
+		parentHash, err := rpc.Node().EthGetTransactionHashByCid(ctx, message.Cid)
+		if err != nil {
+			log.Errorf("EthGetTransactionHashByCid[message.Cid: %v] failed: %v", message.Cid.String(), err)
+			continue
+		}
+		for _, subCall := range invocs.ExecutionTrace.Subcalls {
+			subMessage := subCall.Msg
+			// filter same sub message
+			_, loaded := sm.LoadOrStore(subMessage.Cid().String(), true)
+			if loaded {
+				continue
+			}
+
+			from, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.From)
 			if err != nil {
-				return errors.Wrap(err, "StateReplay failed")
+				log.Errorf("EthAddressFromFilecoinAddress[From]: %v failed: %v", subMessage.From, err)
+				continue
 			}
-			parentHash, err := rpc.Node().EthGetTransactionHashByCid(ctx, message.Cid)
+			to, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.To)
 			if err != nil {
-				return errors.Wrap(err, "EthGetTransactionHashByCid failed")
-			}
-			for _, subCall := range invocs.ExecutionTrace.Subcalls {
-				subMessage := subCall.Msg
-				// filter same sub message
-				_, loaded := sm.LoadOrStore(subMessage.Cid().String(), true)
-				if loaded {
-					continue
-				}
-
-				from, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.From)
-				if err != nil {
-					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
-				}
-				to, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.To)
-				if err != nil {
-					return errors.Wrap(err, "EthAddressFromFilecoinAddress failed")
-				}
-				hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
-				if err != nil {
-					return errors.Wrap(err, "EthHashFromCid failed")
-				}
-				internalTx := &evmmodel.InternalTX{
-					Height:     int64(parentTs.Height()),
-					Version:    version,
-					Hash:       hash.String(),
-					ParentHash: parentHash.String(),
-					From:       from.String(),
-					To:         to.String(),
-					Type:       uint64(subMessage.Method),
-					Value:      subMessage.Value.String(),
-				}
-				lock.Lock()
-				internalTxs = append(internalTxs, internalTx)
-				lock.Unlock()
+				log.Errorf("EthAddressFromFilecoinAddress[To]: %v failed: %v", subMessage.To, err)
+				continue
 			}
 
-			return nil
-		})
-	}
-
-	if err = grp.Wait(); err != nil {
-		return err
+			hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
+			if err != nil {
+				log.Errorf("EthHashFromCid[%v] failed: %v", subMessage.Cid().String(), err)
+				continue
+			}
+			internalTx := &evmmodel.InternalTX{
+				Height:     int64(parentTs.Height()),
+				Version:    version,
+				Hash:       hash.String(),
+				ParentHash: parentHash.String(),
+				From:       from.String(),
+				To:         to.String(),
+				Type:       uint64(subMessage.Method),
+				Value:      subMessage.Value.String(),
+			}
+			internalTxs = append(internalTxs, internalTx)
+		}
 	}
 
 	if len(internalTxs) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version,
-			&internalTxs); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version, &internalTxs); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d internal transactions", len(internalTxs))
+	log.Infof("Tipset[%v] has been process %d evm internal transactions", tipSet.Height(), len(internalTxs))
 	return nil
 }

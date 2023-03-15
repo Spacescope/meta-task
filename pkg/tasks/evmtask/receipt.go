@@ -3,7 +3,6 @@ package evmtask
 import (
 	"context"
 	"encoding/hex"
-	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/errors"
 	"github.com/Spacescore/observatory-task/pkg/lotus"
@@ -12,8 +11,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/goccy/go-json"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 // Receipt parse evm transaction receipt
@@ -28,120 +26,97 @@ func (e *Receipt) Model() interface{} {
 	return new(evmmodel.Receipt)
 }
 
-func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool,
-	storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
+func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
+		log.Errorf("ChainGetTipSet[height: %v] failed: %v", tipSet.Height(), err)
+		return err
 	}
 
 	if !force {
 		existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
 		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
+			log.Errorf("storage.Existed failed: %v", err)
+			return err
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
 
-	tipSetCid, err := parentTs.Key().Cid()
-	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
-	}
-
+	tipSetCid, _ := parentTs.Key().Cid()
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
+		log.Errorf("ethtypes.EthHashFromCid error: %v", err)
+		return err
 	}
 	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
-	}
-
-	if ethBlock.Number == 0 {
-		return errors.Wrap(err, "block number must greater than zero")
-	}
-
-	transactions := ethBlock.Transactions
-	if len(transactions) == 0 {
-		logrus.Debugf("can not find any transaction")
-		return nil
-	}
-
-	// TODO Should use pool be used to limit concurrency?
-	grp := new(errgroup.Group)
-	var (
-		receipts []*evmmodel.Receipt
-		lock     sync.Mutex
-	)
-	for _, transaction := range transactions {
-		tm, ok := transaction.(map[string]interface{})
-		if ok {
-			tm := tm
-			grp.Go(func() error {
-				ethHash, err := ethtypes.ParseEthHash(tm["hash"].(string))
-				if err != nil {
-					return errors.Wrap(err, "EthAddressFromHex failed")
-				}
-				receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
-				if err != nil {
-					return errors.Wrap(err, "EthGetTransactionReceipt failed")
-				}
-				if receipt == nil {
-					return nil
-				}
-
-				r := &evmmodel.Receipt{
-					Height:            int64(parentTs.Height()),
-					Version:           version,
-					TransactionHash:   receipt.TransactionHash.String(),
-					TransactionIndex:  int64(receipt.TransactionIndex),
-					BlockHash:         receipt.BlockHash.String(),
-					BlockNumber:       int64(receipt.BlockNumber),
-					From:              receipt.From.String(),
-					Status:            int64(receipt.Status),
-					CumulativeGasUsed: int64(receipt.CumulativeGasUsed),
-					GasUsed:           int64(receipt.GasUsed),
-					EffectiveGasPrice: receipt.EffectiveGasPrice.Int64(),
-					LogsBloom:         hex.EncodeToString(receipt.LogsBloom),
-				}
-
-				b, _ := json.Marshal(receipt.Logs)
-				r.Logs = string(b)
-				if receipt.ContractAddress != nil {
-					r.ContractAddress = receipt.ContractAddress.String()
-				}
-				if receipt.To != nil {
-					r.To = receipt.To.String()
-				}
-
-				lock.Lock()
-				receipts = append(receipts, r)
-				lock.Unlock()
-				return nil
-			})
-		}
-	}
-
-	if err := grp.Wait(); err != nil {
+		log.Errorf("EthGetBlockByHash error: %v", err)
 		return err
 	}
 
+	if ethBlock.Number == 0 {
+		log.Infof("block number == 0")
+		return nil
+	}
+
+	transactions := ethBlock.Transactions
+	receipts := make([]*evmmodel.Receipt, 0)
+
+	for _, transaction := range transactions {
+		tm, ok := transaction.(map[string]interface{})
+		if ok {
+			ethHash, err := ethtypes.ParseEthHash(tm["hash"].(string))
+			if err != nil {
+				log.Errorf("ethtypes.ParseEthHash failed: %v", err)
+				continue
+			}
+			receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
+			if err != nil {
+				log.Errorf("EthGetTransactionReceipt[%v] failed: %v", ethHash.String(), err)
+				continue
+			}
+			if receipt == nil {
+				continue
+			}
+
+			r := &evmmodel.Receipt{
+				Height:            int64(parentTs.Height()),
+				Version:           version,
+				TransactionHash:   receipt.TransactionHash.String(),
+				TransactionIndex:  int64(receipt.TransactionIndex),
+				BlockHash:         receipt.BlockHash.String(),
+				BlockNumber:       int64(receipt.BlockNumber),
+				From:              receipt.From.String(),
+				Status:            int64(receipt.Status),
+				CumulativeGasUsed: int64(receipt.CumulativeGasUsed),
+				GasUsed:           int64(receipt.GasUsed),
+				EffectiveGasPrice: receipt.EffectiveGasPrice.Int64(),
+				LogsBloom:         hex.EncodeToString(receipt.LogsBloom),
+			}
+
+			b, _ := json.Marshal(receipt.Logs)
+			r.Logs = string(b)
+			if receipt.ContractAddress != nil {
+				r.ContractAddress = receipt.ContractAddress.String()
+			}
+			if receipt.To != nil {
+				r.To = receipt.To.String()
+			}
+
+			receipts = append(receipts, r)
+		}
+	}
+
 	if len(receipts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(parentTs.Height()), version,
-			&receipts); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Receipt), int64(parentTs.Height()), version, &receipts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d receipt", len(receipts))
+	log.Infof("Tipset[%v] has been process %d receipt", tipSet.Height(), len(receipts))
 
 	return nil
 }

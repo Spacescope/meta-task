@@ -8,7 +8,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/filecoin-project/lotus/chain/types"
 )
@@ -25,10 +25,6 @@ func (m *Message) Model() interface{} {
 }
 
 func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -40,8 +36,7 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(),
-				int64(parentTs.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -70,13 +65,12 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(messageModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version,
-			&messageModels); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
 
-	logrus.Debugf("process %d message", len(messageModels))
+	log.Infof("Tipset[%v] has been process %d message", tipSet.Height(), len(messageModels))
 
 	return nil
 }
