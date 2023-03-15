@@ -9,7 +9,7 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/storage"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockParent parse block parent
@@ -31,8 +31,7 @@ func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(),
-				int64(tipSet.Height()), version)
+			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(tipSet.Height()), version)
 			return nil
 		}
 	}
@@ -53,5 +52,8 @@ func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}
+
+	log.Infof("Tipset[%v] has been process %d blockParents", tipSet.Height(), len(blockParents))
+
 	return nil
 }

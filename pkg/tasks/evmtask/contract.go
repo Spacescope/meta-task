@@ -95,7 +95,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 		}
 	}
 
-	log.Infof("process %d evm_contract", len(contracts))
+	log.Infof("Tipset[%v] has been process %d evm_contract", tipSet.Height(), len(contracts))
 
 	return nil
 }

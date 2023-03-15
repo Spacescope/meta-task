@@ -106,6 +106,6 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
-	log.Infof("process %d evm_address", len(evmAddresses))
+	log.Infof("Tipset[%v] has been process %d evm_address", tipSet.Height(), len(evmAddresses))
 	return nil
 }

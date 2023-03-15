@@ -144,7 +144,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		}
 	}
 
-	log.Infof("process %d evm transaction", len(evmTransaction))
+	log.Infof("Tipset[%v] has been process %d evm transaction", tipSet.Height(), len(evmTransaction))
 
 	return nil
 }

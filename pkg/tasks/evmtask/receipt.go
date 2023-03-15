@@ -116,7 +116,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		}
 	}
 
-	log.Infof("process %d receipt", len(receipts))
+	log.Infof("Tipset[%v] has been process %d receipt", tipSet.Height(), len(receipts))
 
 	return nil
 }

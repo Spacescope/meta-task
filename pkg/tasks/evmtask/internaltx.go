@@ -53,7 +53,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	)
 
 	for _, message := range messages {
-		invocs, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
+		invocs, err := rpc.Node().StateReplay(ctx, parentTs.Key(), message.Cid)
 		if err != nil {
 			log.Errorf("StateReplay[message.Cid: %v] failed: %v", message.Cid.String(), err)
 			continue
@@ -81,6 +81,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 				log.Errorf("EthAddressFromFilecoinAddress[To]: %v failed: %v", subMessage.To, err)
 				continue
 			}
+
 			hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
 			if err != nil {
 				log.Errorf("EthHashFromCid[%v] failed: %v", subMessage.Cid().String(), err)
@@ -106,6 +107,6 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 		}
 	}
 
-	log.Infof("process %d evm internal transactions", len(internalTxs))
+	log.Infof("Tipset[%v] has been process %d evm internal transactions", tipSet.Height(), len(internalTxs))
 	return nil
 }

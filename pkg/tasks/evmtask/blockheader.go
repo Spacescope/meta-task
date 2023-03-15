@@ -51,13 +51,13 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "rpc EthHashFromCid failed")
 	}
 
-	var ethBlock ethtypes.EthBlock
-	ethBlock, err = rpc.Node().EthGetBlockByHash(ctx, hash, false)
+	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, false)
 	if err != nil {
 		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
 	}
 	if ethBlock.Number == 0 {
-		return errors.Wrap(err, "block number must greater than zero")
+		log.Infof("block number == 0")
+		return nil
 	}
 
 	blockHeader := &evmmodel.BlockHeader{
@@ -87,6 +87,6 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		return errors.Wrap(err, "storageWrite failed")
 	}
 
-	log.Infof("process height: %v evm_block_header", tipSet.Height())
+	log.Infof("Tipset[%v] has been process height: %v evm_block_header", tipSet.Height(), tipSet.Height())
 	return nil
 }

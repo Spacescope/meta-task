@@ -77,5 +77,7 @@ func (b *BlockMessage) Run(ctx context.Context, rpc *lotus.Rpc, version int, tip
 		}
 	}
 
+	log.Infof("Tipset[%v] has been process %d messages", tipSet.Height(), len(blockMessages))
+
 	return nil
 }
