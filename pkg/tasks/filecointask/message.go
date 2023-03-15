@@ -25,10 +25,6 @@ func (m *Message) Model() interface{} {
 }
 
 func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -70,8 +66,7 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(messageModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version,
-			&messageModels); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

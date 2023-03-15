@@ -26,10 +26,6 @@ func (i *InternalTx) Model() interface{} {
 }
 
 func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -57,7 +53,6 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	)
 
 	for _, message := range messages {
-		message := message
 		invocs, err := rpc.Node().StateReplay(ctx, types.EmptyTSK, message.Cid)
 		if err != nil {
 			log.Errorf("StateReplay[message.Cid: %v] failed: %v", message.Cid.String(), err)

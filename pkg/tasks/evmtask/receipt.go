@@ -27,19 +27,17 @@ func (e *Receipt) Model() interface{} {
 }
 
 func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
+		log.Errorf("ChainGetTipSet[height: %v] failed: %v", tipSet.Height(), err)
+		return err
 	}
 
 	if !force {
 		existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
 		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
+			log.Errorf("storage.Existed failed: %v", err)
+			return err
 		}
 		if existed {
 			log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
@@ -47,37 +45,29 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 		}
 	}
 
-	tipSetCid, err := parentTs.Key().Cid()
-	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
-	}
-
+	tipSetCid, _ := parentTs.Key().Cid()
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
+		log.Errorf("ethtypes.EthHashFromCid error: %v", err)
+		return err
 	}
 	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+		log.Errorf("EthGetBlockByHash error: %v", err)
+		return err
 	}
 
 	if ethBlock.Number == 0 {
-		return errors.Wrap(err, "block number must greater than zero")
-	}
-
-	transactions := ethBlock.Transactions
-	if len(transactions) == 0 {
-		log.Debugf("can not find any transaction")
+		log.Infof("block number == 0")
 		return nil
 	}
 
-	var (
-		receipts []*evmmodel.Receipt
-	)
+	transactions := ethBlock.Transactions
+	receipts := make([]*evmmodel.Receipt, 0)
+
 	for _, transaction := range transactions {
 		tm, ok := transaction.(map[string]interface{})
 		if ok {
-			tm := tm
 			ethHash, err := ethtypes.ParseEthHash(tm["hash"].(string))
 			if err != nil {
 				log.Errorf("ethtypes.ParseEthHash failed: %v", err)
@@ -85,7 +75,7 @@ func (e *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 			}
 			receipt, err := rpc.Node().EthGetTransactionReceipt(ctx, ethHash)
 			if err != nil {
-				log.Errorf("EthGetTransactionReceipt[%v] failed: %v", ethHash, err)
+				log.Errorf("EthGetTransactionReceipt[%v] failed: %v", ethHash.String(), err)
 				continue
 			}
 			if receipt == nil {

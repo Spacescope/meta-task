@@ -26,14 +26,8 @@ func (r *RawActor) Model() interface{} {
 }
 
 func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
-	var err error
-
 	// lazy init actor map
-	if err = utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
+	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
 		return errors.Wrap(err, "InitActorCodeCidMap failed")
 	}
 
@@ -48,8 +42,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 			return errors.Wrap(err, "storage.Existed failed")
 		}
 		if existed {
-			logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(),
-				int64(parentTs.Height()), version)
+			logrus.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(), int64(parentTs.Height()), version)
 			return nil
 		}
 	}
@@ -91,8 +84,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(rawActors) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version,
-			&rawActors); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

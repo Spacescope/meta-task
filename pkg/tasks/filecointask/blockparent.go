@@ -49,8 +49,7 @@ func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		}
 	}
 	if len(blockParents) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockParent), int64(tipSet.Height()),
-			version, &blockParents); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockParent), int64(tipSet.Height()), version, &blockParents); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}

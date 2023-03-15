@@ -25,10 +25,6 @@ func (e *Transaction) Model() interface{} {
 }
 
 func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -60,14 +56,10 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if ethBlock.Number == 0 {
-		return errors.Wrap(err, "block number must greater than zero")
-	}
-
-	transactions := ethBlock.Transactions
-	if len(transactions) == 0 {
-		log.Debugf("can not find any transaction")
+		log.Infof("block number == 0")
 		return nil
 	}
+	transactions := ethBlock.Transactions
 
 	var evmTransaction []*evmmodel.Transaction
 	for _, transaction := range transactions {

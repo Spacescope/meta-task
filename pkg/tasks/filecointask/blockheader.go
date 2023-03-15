@@ -25,10 +25,6 @@ func (b *BlockHeader) Model() interface{} {
 }
 
 func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if tipSet.Height() == 0 {
-		return nil
-	}
-
 	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
 	if err != nil {
 		return errors.Wrap(err, "ChainGetTipSet failed")
@@ -65,8 +61,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(blockHeaders) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()),
-			version, &blockHeaders); err != nil {
+		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}
