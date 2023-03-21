@@ -3,11 +3,8 @@ package evmtask
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,45 +21,44 @@ func (b *BlockHeader) Model() interface{} {
 	return new(evmmodel.BlockHeader)
 }
 
-func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
-	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
+func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error {
+	if !tp.Force {
+		// existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
+		// if err != nil {
+		// 	return errors.Wrap(err, "storage.Existed failed")
+		// }
+		// if existed {
+		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
+		// 	return nil
+		// }
 	}
 
-	if !force {
-		existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	tipSetCid, err := parentTs.Key().Cid()
+	tipSetCid, err := tp.AncestorTs.Key().Cid()
 	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
+		log.Errorf("ts.Key().Cid() err: %v", err)
+		return err
 	}
 
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
+		log.Errorf("ethtypes.EthHashFromCid err: %v", err)
+		return err
 	}
 
-	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, false)
+	ethBlock, err := tp.Api.EthGetBlockByHash(ctx, hash, false)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+		log.Errorf("EthGetBlockByHash err: %v", err)
+		return err
 	}
 	if ethBlock.Number == 0 {
 		log.Infof("block number == 0")
 		return nil
 	}
 
-	blockHeader := &evmmodel.BlockHeader{
-		Height:           int64(parentTs.Height()),
-		Version:          version,
+	// blockHeader := &evmmodel.BlockHeader{
+	_ = &evmmodel.BlockHeader{
+		Height:           int64(tp.AncestorTs.Height()),
+		Version:          tp.Version,
 		Hash:             hash.String(),
 		ParentHash:       ethBlock.ParentHash.String(),
 		Miner:            ethBlock.Miner.String(),
@@ -82,11 +78,10 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 	}
 
-	if err = storage.Insert(ctx, new(evmmodel.BlockHeader),
-		int64(parentTs.Height()), version, blockHeader); err != nil {
-		return errors.Wrap(err, "storageWrite failed")
-	}
+	// if err = storage.Insert(ctx, new(evmmodel.BlockHeader),
+	// 	int64(parentTs.Height()), version, blockHeader); err != nil {
+	// 	return errors.Wrap(err, "storageWrite failed")
+	// }
 
-	log.Infof("Tipset[%v] has been process height: %v evm_block_header", tipSet.Height(), tipSet.Height())
 	return nil
 }

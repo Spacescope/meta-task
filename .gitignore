@@ -20,8 +20,6 @@
 __debug_bin
 
 .vscode/
-config/service.conf
+config/
 
 bin/
-.idea
-

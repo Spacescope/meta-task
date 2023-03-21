@@ -2,13 +2,9 @@ package filecointask
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,28 +20,23 @@ func (b *BlockHeader) Model() interface{} {
 	return filecoinmodel.BlockHeader{}
 }
 
-func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
-	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
+func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error {
+	if !tp.Force {
+		// existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
+		// if err != nil {
+		// 	return errors.Wrap(err, "storage.Existed failed")
+		// }
+		// if existed {
+		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
+		// 	return nil
+		// }
 	}
 
 	var blockHeaders []*filecoinmodel.BlockHeader
-	for _, bh := range parentTs.Blocks() {
+	for _, bh := range tp.AncestorTs.Blocks() {
 		blockHeaders = append(
 			blockHeaders, &filecoinmodel.BlockHeader{
-				Version:         version,
+				Version:         tp.Version,
 				Cid:             bh.Cid().String(),
 				Miner:           bh.Miner.String(),
 				ParentWeight:    bh.ParentWeight.String(),
@@ -60,12 +51,12 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(blockHeaders) > 0 {
-		if err := storage.Inserts(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
-			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
-		}
+		// if err := storage.Inserts(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
+		// 	return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
+		// }
 	}
 
-	log.Infof("Tipset[%v] has been process", tipSet.Height())
+	log.Infof("Tipset[%v] has been process", tp.AncestorTs.Height())
 
 	return nil
 }

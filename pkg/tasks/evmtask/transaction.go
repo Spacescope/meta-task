@@ -3,12 +3,9 @@ package evmtask
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/Spacescore/observatory-task/pkg/utils"
-	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,35 +21,33 @@ func (e *Transaction) Model() interface{} {
 	return new(evmmodel.Transaction)
 }
 
-func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
-	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
+func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error {
+	if !tp.Force {
+		// existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
+		// if err != nil {
+		// 	return errors.Wrap(err, "storage.Existed failed")
+		// }
+		// if existed {
+		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
+		// 	return nil
+		// }
 	}
 
-	if !force {
-		existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	tipSetCid, err := parentTs.Key().Cid()
+	tipSetCid, err := tp.AncestorTs.Key().Cid()
 	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
+		log.Errorf("ts.Key().Cid() err: %v", err)
+		return err
 	}
 
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
+		log.Errorf("ethtypes.EthHashFromCid err: %v", err)
+		return err
 	}
-	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := tp.Api.EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+		log.Errorf("EthGetBlockByHash err: %v", err)
+		return err
 	}
 
 	if ethBlock.Number == 0 {
@@ -66,8 +61,8 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		tm := transaction.(map[string]interface{})
 
 		et := &evmmodel.Transaction{
-			Height:               int64(parentTs.Height()),
-			Version:              version,
+			Height:               int64(tp.AncestorTs.Height()),
+			Version:              tp.Version,
 			Hash:                 tm["hash"].(string),
 			BlockHash:            tm["blockHash"].(string),
 			From:                 tm["from"].(string),
@@ -139,12 +134,12 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.Inserts(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
-		}
+		// if err := storage.Inserts(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
+		// 	return errors.Wrap(err, "storage.WriteMany failed")
+		// }
 	}
 
-	log.Infof("Tipset[%v] has been process %d evm transaction", tipSet.Height(), len(evmTransaction))
+	log.Infof("Tipset[%v] has been process %d evm transaction", tp.AncestorTs.Height(), len(evmTransaction))
 
 	return nil
 }
