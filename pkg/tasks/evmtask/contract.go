@@ -52,13 +52,10 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 		return errors.Wrap(err, "StateChangedActors failed")
 	}
 
-	var (
-		contracts []*evmmodel.Contract
-	)
+	var contracts []*evmmodel.Contract
 
 	for _, actor := range changedActors {
 		if utils.IsEVMActor(actor.Code) && actor.Address != nil {
-			actor := actor
 			address := *actor.Address
 			actorState, err := rpc.Node().StateGetActor(ctx, address, tipSet.Key())
 			if err != nil {
