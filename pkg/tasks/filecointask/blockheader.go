@@ -60,7 +60,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(blockHeaders) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
+		if err := storage.Inserts(ctx, new(filecoinmodel.BlockHeader), int64(parentTs.Height()), version, &blockHeaders); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
 		}
 	}

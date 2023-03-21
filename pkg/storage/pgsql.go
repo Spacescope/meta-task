@@ -78,7 +78,7 @@ func (p *PGSQL) Existed(m interface{}, height int64, version int) (bool, error) 
 
 // Write insert one record into db
 
-func (p *PGSQL) DelOldVersionAndWrite(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+func (p *PGSQL) Insert(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
 	session := p.engine.NewSession()
 	defer session.Close()
 
@@ -100,7 +100,7 @@ func (p *PGSQL) DelOldVersionAndWrite(ctx context.Context, t interface{}, height
 	return nil
 }
 
-func (p *PGSQL) DelOldVersionAndWriteMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+func (p *PGSQL) Inserts(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
 	session := p.engine.NewSession()
 	defer session.Close()
 

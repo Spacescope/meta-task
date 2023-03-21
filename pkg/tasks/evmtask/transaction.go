@@ -139,7 +139,7 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
+		if err := storage.Inserts(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

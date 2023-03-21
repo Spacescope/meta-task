@@ -87,7 +87,7 @@ func (c *Contract) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(contracts) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Contract), int64(parentTs.Height()), version, &contracts); err != nil {
+		if err := storage.Inserts(ctx, new(evmmodel.Contract), int64(parentTs.Height()), version, &contracts); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

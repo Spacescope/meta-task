@@ -102,7 +102,7 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	}
 
 	if len(internalTxs) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version, &internalTxs); err != nil {
+		if err := storage.Inserts(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version, &internalTxs); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

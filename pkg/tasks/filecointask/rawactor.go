@@ -84,7 +84,7 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(rawActors) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
+		if err := storage.Inserts(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

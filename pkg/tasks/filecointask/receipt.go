@@ -73,7 +73,7 @@ func (r *Receipt) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(receiptModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Receipt), int64(parentTs.Height()), version, &receiptModels); err != nil {
+		if err := storage.Inserts(ctx, new(filecoinmodel.Receipt), int64(parentTs.Height()), version, &receiptModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

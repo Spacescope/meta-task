@@ -82,7 +82,7 @@ func (b *BlockHeader) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 	}
 
-	if err = storage.DelOldVersionAndWrite(ctx, new(evmmodel.BlockHeader),
+	if err = storage.Insert(ctx, new(evmmodel.BlockHeader),
 		int64(parentTs.Height()), version, blockHeader); err != nil {
 		return errors.Wrap(err, "storageWrite failed")
 	}

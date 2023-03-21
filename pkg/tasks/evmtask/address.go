@@ -101,8 +101,7 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(evmAddresses) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Address),
-			int64(tipSet.Height()), version, &evmAddresses); err != nil {
+		if err := storage.Inserts(ctx, new(evmmodel.Address), int64(tipSet.Height()), version, &evmAddresses); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}

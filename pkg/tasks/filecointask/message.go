@@ -65,7 +65,7 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(messageModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
+		if err := storage.Inserts(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
 			return errors.Wrap(err, "storage.WriteMany failed")
 		}
 	}
