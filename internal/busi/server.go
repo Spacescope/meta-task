@@ -2,6 +2,10 @@ package busi
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/Spacescore/observatory-task/pkg/models"
 	"github.com/Spacescore/observatory-task/pkg/utils"
@@ -11,6 +15,7 @@ import (
 type Task struct {
 	Ctx context.Context
 	Cf  utils.TomlConfig
+	wg  sync.WaitGroup
 }
 
 func NewServer(ctx context.Context) *Task {
@@ -36,5 +41,20 @@ func (s *Task) Start() {
 	s.setLogTimeformat()
 
 	go HttpServerStart(s.Cf.MetaTask.Addr)
-	MetaTaskStart(s.Ctx, &s.Cf.MetaTask)
+
+	{
+		s.wg.Add(1)
+		ctx, cancel := context.WithCancel(s.Ctx)
+		go MetaTaskStart(ctx, s.wg.Done, &s.Cf.MetaTask)
+		<-s.sigHandle()
+		cancel()
+		s.wg.Wait()
+	}
+}
+
+func (s *Task) sigHandle() <-chan os.Signal {
+	sigChannel := make(chan os.Signal, 1)
+	signal.Notify(sigChannel, syscall.SIGTERM, syscall.SIGINT)
+
+	return sigChannel
 }

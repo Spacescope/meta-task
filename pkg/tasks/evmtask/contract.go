@@ -65,7 +65,7 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(contracts) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Contract), int64(tp.AncestorTs.Height()), tp.Version, &contracts); err != nil {
+		if err = common.InsertContracts(ctx, contracts); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

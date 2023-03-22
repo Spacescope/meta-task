@@ -3,6 +3,7 @@ package common
 import (
 	"log"
 
+	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	lotusapi "github.com/filecoin-project/lotus/api"
 
@@ -130,6 +131,32 @@ func InsertMany(ctx context.Context, t interface{}, height int64, version int, m
 	if err != nil {
 		return err
 	}
+	session.Commit()
+
+	return nil
+}
+
+// only use for evm_contracts
+func InsertContracts(ctx context.Context, contracts []*evmmodel.Contract) error {
+	session := utils.EngineGroup[utils.TaskDB].NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	for _, contract := range contracts {
+		_, err := session.NoAutoCondition().Where("address = ?", contract.Address).Delete(contract) // del the same contract address that historical extracted.
+		if err != nil {
+			return err
+		}
+
+		_, err = session.Insert(contract)
+		if err != nil {
+			return err
+		}
+	}
+
 	session.Commit()
 
 	return nil

@@ -70,7 +70,8 @@ func newMetaTask(cf *utils.MetaTask) *MetaTask {
 	}
 }
 
-func MetaTaskStart(ctx context.Context, cf *utils.MetaTask) {
+func MetaTaskStart(ctx context.Context, done func(), cf *utils.MetaTask) {
+	defer done()
 	s := newMetaTask(cf)
 	defer s.rdb.Close()
 
@@ -95,14 +96,12 @@ func (s *MetaTask) Watcher(ctx context.Context) (bool, error) {
 		case <-ctx.Done():
 			log.Infof("meta-task, ctx done, receive signal: %s", ctx.Err().Error())
 			return true, nil
-		case <-time.After(time.Second * 60):
-			if _, err := api.ChainHead(ctx); err != nil {
-				log.Errorf("keepalive failed, err: %s", err)
-				return false, err
-			}
-			log.Info("Ticktack: call heartbeat method.")
 		default:
 			s.fetchMessage(ctx, api, s.TaskPlugin)
+
+			if _, err := api.ChainHead(ctx); err != nil { // Due to Lotus didn't offer keepalive rpc, we call ChainHead method and treat it as keepalive RPC.
+				log.Fatalf("keepalive err: %v", err)
+			}
 		}
 	}
 }
@@ -111,6 +110,7 @@ func (s *MetaTask) fetchMessage(ctx context.Context, api *lotusapi.FullNodeStruc
 	result, err := s.rdb.BRPop(ctx, time.Second*30, s.TaskName).Result()
 	if err != nil {
 		if err == redis.Nil {
+			// log.Infof("BRPop nil: %v", err)
 			return
 		}
 		log.Fatalf("consume redis error: %v", err)
