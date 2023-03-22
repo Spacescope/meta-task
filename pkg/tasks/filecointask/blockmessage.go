@@ -32,7 +32,7 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 
 		for _, message := range msg.SecpkMessages {
 			bm := &filecoinmodel.BlockMessage{
-				Height:     int64(tp.AncestorTs.Height()),
+				Height:     int64(block.Height),
 				Version:    tp.Version,
 				BlockCid:   block.Cid().String(),
 				MessageCid: message.Cid().String(),
@@ -42,7 +42,7 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 
 		for _, message := range msg.BlsMessages {
 			bm := &filecoinmodel.BlockMessage{
-				Height:     int64(tp.AncestorTs.Height()),
+				Height:     int64(block.Height),
 				Version:    tp.Version,
 				BlockCid:   block.Cid().String(),
 				MessageCid: message.Cid().String(),
@@ -52,7 +52,7 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 	}
 
 	if len(blockMessages) > 0 {
-		if err := common.InsertMany(ctx, new(filecoinmodel.BlockMessage), int64(tp.CurrentTs.Height()), tp.Version, &blockMessages); err != nil {
+		if err := common.InsertMany(ctx, new(filecoinmodel.BlockMessage), int64(tp.AncestorTs.Height()), tp.Version, &blockMessages); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

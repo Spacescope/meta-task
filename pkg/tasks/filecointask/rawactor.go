@@ -60,7 +60,7 @@ func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(rawActors) > 0 {
-		if err = common.InsertMany(ctx, new(filecoinmodel.RawActor), int64(tp.CurrentTs.Height()), tp.Version, &rawActors); err != nil {
+		if err = common.InsertMany(ctx, new(filecoinmodel.RawActor), int64(tp.AncestorTs.Height()), tp.Version, &rawActors); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

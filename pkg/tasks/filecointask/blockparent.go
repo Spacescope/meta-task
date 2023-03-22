@@ -22,7 +22,7 @@ func (b *BlockParent) Model() interface{} {
 
 func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error {
 	var blockParents []*filecoinmodel.BlockParent
-	for _, bh := range tp.CurrentTs.Blocks() {
+	for _, bh := range tp.AncestorTs.Blocks() {
 		for _, parent := range bh.Parents {
 			blockParents = append(blockParents, &filecoinmodel.BlockParent{
 				Height:    int64(bh.Height),
@@ -33,7 +33,7 @@ func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error 
 		}
 	}
 	if len(blockParents) > 0 {
-		if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.CurrentTs.Height()), tp.Version, &blockParents); err != nil {
+		if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.AncestorTs.Height()), tp.Version, &blockParents); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

@@ -83,7 +83,7 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(evmAddresses) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.CurrentTs.Height()), tp.Version, &evmAddresses); err != nil {
+		if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.AncestorTs.Height()), tp.Version, &evmAddresses); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

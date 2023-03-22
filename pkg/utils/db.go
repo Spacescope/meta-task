@@ -80,8 +80,7 @@ func SyncTables(x *xorm.Engine, tables []interface{}) error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-func newEngine(ctx context.Context /*, migrateFunc func(*xorm.Engine) error*/, schema string) (x *xorm.Engine,
-	err error) {
+func newEngine(ctx context.Context /*, migrateFunc func(*xorm.Engine) error*/, schema string) (x *xorm.Engine, err error) {
 	if x, err = setEngine(schema); err != nil {
 		return nil, err
 	}

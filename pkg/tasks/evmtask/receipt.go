@@ -98,7 +98,7 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(receipts) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.CurrentTs.Height()), tp.Version, &receipts); err != nil {
+		if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &receipts); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

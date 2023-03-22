@@ -83,7 +83,7 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(internalTxs) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.InternalTX), int64(tp.CurrentTs.Height()), tp.Version, &internalTxs); err != nil {
+		if err = common.InsertMany(ctx, new(evmmodel.InternalTX), int64(tp.AncestorTs.Height()), tp.Version, &internalTxs); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}

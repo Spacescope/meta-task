@@ -66,7 +66,7 @@ func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error 
 		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 	}
 
-	if err = common.InsertOne(ctx, new(evmmodel.BlockHeader), int64(tp.CurrentTs.Height()), tp.Version, blockHeader); err != nil {
+	if err = common.InsertOne(ctx, new(evmmodel.BlockHeader), int64(tp.AncestorTs.Height()), tp.Version, blockHeader); err != nil {
 		log.Errorf("Sql Engine err: %v", err)
 		return err
 	}
