@@ -4,12 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/Spacescore/observatory-task/pkg/utils"
-	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,31 +21,11 @@ func (r *RawActor) Model() interface{} {
 	return new(filecoinmodel.RawActor)
 }
 
-func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	// lazy init actor map
-	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
-		return errors.Wrap(err, "InitActorCodeCidMap failed")
-	}
-
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
+	changedActors, err := tp.Api.StateChangedActors(ctx, tp.AncestorTs.ParentState(), tp.CurrentTs.ParentState())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(r.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	changedActors, err := rpc.Node().StateChangedActors(ctx, parentTs.ParentState(), tipSet.ParentState())
-	if err != nil {
-		return errors.Wrap(err, "StateChangedActors failed")
+		log.Errorf("StateChangedActors[pTs: %v, pHeight: %v, cTs: %v, cHeight: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), tp.CurrentTs.String(), tp.CurrentTs.Height(), err)
+		return err
 	}
 
 	var (
@@ -57,15 +33,15 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 		exitRa    = make(map[string]*filecoinmodel.RawActor)
 	)
 	for _, ac := range changedActors {
-		actorName := utils.FindActorNameByCodeCid(ac.Code)
+		actorName := common.NewCidCache(ctx, tp.Api).FindActorNameByCodeCid(ac.Code)
 		if actorName == "" {
-			log.Warn("can not find cid:[%s] actor name")
+			log.Warnf("FindActorNameByCodeCid[actor: %v] err: not found", ac.Code.String())
 			continue
 		}
 		ra := &filecoinmodel.RawActor{
-			Height:    int64(parentTs.Height()),
-			Version:   version,
-			StateRoot: tipSet.ParentState().String(),
+			Height:    int64(tp.AncestorTs.Height()),
+			Version:   tp.Version,
+			StateRoot: tp.AncestorTs.ParentState().String(),
 			Name:      actorName,
 			Code:      ac.Code.String(),
 			Head:      ac.Head.String(),
@@ -84,12 +60,11 @@ func (r *RawActor) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet 
 	}
 
 	if len(rawActors) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
+		if err = common.InsertMany(ctx, new(filecoinmodel.RawActor), int64(tp.AncestorTs.Height()), tp.Version, &rawActors); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d raw actor", tipSet.Height(), len(rawActors))
-
+	log.Infof("has been process %v raw_actor", len(rawActors))
 	return nil
 }

@@ -7,7 +7,7 @@ type BlockHeader struct {
 	Miner           string `xorm:"varchar(255) notnull default ''"`
 	ParentWeight    string `xorm:"varchar(255) notnull default ''"`
 	ParentBaseFee   string `xorm:"varchar(255) notnull default ''"`
-	ParentStateRoot string `xorm:"varchar(255) notnull default 0"`
+	ParentStateRoot string `xorm:"varchar(255) notnull default ''"`
 	WinCount        int64  `xorm:"integer notnull default 0"`
 	Timestamp       uint64 `xorm:"integer notnull default 0"`
 	ForkSignaling   uint64 `xorm:"integer notnull default 0"`

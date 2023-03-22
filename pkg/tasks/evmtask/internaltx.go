@@ -4,11 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -25,26 +22,11 @@ func (i *InternalTx) Model() interface{} {
 	return new(evmmodel.InternalTX)
 }
 
-func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
+	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(i.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", i.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
-	if err != nil {
-		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
+		log.Errorf("ChainGetMessagesInTipset[ts: %v, height: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+		return err
 	}
 
 	var (
@@ -53,19 +35,18 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	)
 
 	for _, message := range messages {
-		invocs, err := rpc.Node().StateReplay(ctx, parentTs.Key(), message.Cid)
+		invocs, err := tp.Api.StateReplay(ctx, tp.AncestorTs.Key(), message.Cid)
 		if err != nil {
-			log.Errorf("StateReplay[message.Cid: %v] failed: %v", message.Cid.String(), err)
+			log.Errorf("StateReplay[ts: %v, height: %v, cid: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), message.Cid.String(), err)
 			continue
 		}
-		parentHash, err := rpc.Node().EthGetTransactionHashByCid(ctx, message.Cid)
+		parentHash, err := tp.Api.EthGetTransactionHashByCid(ctx, message.Cid)
 		if err != nil {
-			log.Errorf("EthGetTransactionHashByCid[message.Cid: %v] failed: %v", message.Cid.String(), err)
+			log.Errorf("EthGetTransactionHashByCid[ts: %v, height: %v, cid: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), message.Cid.String(), err)
 			continue
 		}
 		for _, subCall := range invocs.ExecutionTrace.Subcalls {
 			subMessage := subCall.Msg
-			// filter same sub message
 			_, loaded := sm.LoadOrStore(subMessage.Cid().String(), true)
 			if loaded {
 				continue
@@ -73,23 +54,23 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 
 			from, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.From)
 			if err != nil {
-				log.Errorf("EthAddressFromFilecoinAddress[From]: %v failed: %v", subMessage.From, err)
+				log.Errorf("EthAddressFromFilecoinAddress[from: %v] err: %v", subMessage.From.String(), err)
 				continue
 			}
 			to, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.To)
 			if err != nil {
-				log.Errorf("EthAddressFromFilecoinAddress[To]: %v failed: %v", subMessage.To, err)
+				log.Errorf("EthAddressFromFilecoinAddress[to: %v] err: %v", subMessage.To.String(), err)
 				continue
 			}
 
 			hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
 			if err != nil {
-				log.Errorf("EthHashFromCid[%v] failed: %v", subMessage.Cid().String(), err)
+				log.Errorf("EthHashFromCid[cid: %v] err: %v", subMessage.Cid().String(), err)
 				continue
 			}
 			internalTx := &evmmodel.InternalTX{
-				Height:     int64(parentTs.Height()),
-				Version:    version,
+				Height:     int64(tp.AncestorTs.Height()),
+				Version:    tp.Version,
 				Hash:       hash.String(),
 				ParentHash: parentHash.String(),
 				From:       from.String(),
@@ -102,11 +83,11 @@ func (i *InternalTx) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSe
 	}
 
 	if len(internalTxs) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.InternalTX), int64(parentTs.Height()), version, &internalTxs); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
+		if err = common.InsertMany(ctx, new(evmmodel.InternalTX), int64(tp.AncestorTs.Height()), tp.Version, &internalTxs); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d evm internal transactions", tipSet.Height(), len(internalTxs))
+	log.Infof("has been process %v evm_internal_tx", len(internalTxs))
 	return nil
 }

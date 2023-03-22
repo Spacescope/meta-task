@@ -3,13 +3,10 @@ package storage
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task/config"
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/mitchellh/mapstructure"
+	// "github.com/Spacescore/observatory-task/config"
 
 	_ "github.com/lib/pq"
 	"xorm.io/xorm"
-	"xorm.io/xorm/names"
 )
 
 type PostgreSQLParams struct {
@@ -33,40 +30,6 @@ func (p *PGSQL) Sync(m ...interface{}) error {
 	return p.engine.Sync2(m...)
 }
 
-// InitFromConfig init from config
-func (p *PGSQL) InitFromConfig(ctx context.Context, storageCFG *config.Storage) error {
-	var (
-		err    error
-		params PostgreSQLParams
-	)
-
-	if err = mapstructure.Decode(storageCFG.Params, &params); err != nil {
-		return errors.Wrap(err, "mapstructure.Decode failed")
-	}
-	if params.DSN == "" {
-		return errors.New("dsn can not empty")
-	}
-
-	p.engine, err = xorm.NewEngine("postgres", params.DSN)
-	if err != nil {
-		return errors.Wrap(err, "db init failed")
-	}
-
-	p.engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	p.engine.SetSchema("")
-	if params.MaxIdle > 0 {
-		p.engine.SetMaxIdleConns(params.MaxIdle)
-	}
-	if params.MaxOpen > 0 {
-		p.engine.SetMaxOpenConns(params.MaxOpen)
-	}
-	p.engine.SetMapper(names.GonicMapper{})
-
-	p.engine.ShowSQL(false)
-
-	return nil
-}
-
 // Existed judge model exist or not
 func (p *PGSQL) Existed(m interface{}, height int64, version int) (bool, error) {
 	count, err := p.engine.Where("height=? and version=?", height, version).Count(m)
@@ -78,7 +41,7 @@ func (p *PGSQL) Existed(m interface{}, height int64, version int) (bool, error) 
 
 // Write insert one record into db
 
-func (p *PGSQL) DelOldVersionAndWrite(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+func (p *PGSQL) Insert(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
 	session := p.engine.NewSession()
 	defer session.Close()
 
@@ -100,7 +63,7 @@ func (p *PGSQL) DelOldVersionAndWrite(ctx context.Context, t interface{}, height
 	return nil
 }
 
-func (p *PGSQL) DelOldVersionAndWriteMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+func (p *PGSQL) Inserts(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
 	session := p.engine.NewSession()
 	defer session.Close()
 

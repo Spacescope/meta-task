@@ -2,13 +2,9 @@ package filecointask
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,36 +20,24 @@ func (b *BlockParent) Model() interface{} {
 	return new(filecoinmodel.BlockParent)
 }
 
-func (b *BlockParent) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	if !force {
-		existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(tipSet.Height()), version)
-			return nil
-		}
-	}
-
+func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error {
 	var blockParents []*filecoinmodel.BlockParent
-	for _, bh := range tipSet.Blocks() {
+	for _, bh := range tp.AncestorTs.Blocks() {
 		for _, parent := range bh.Parents {
 			blockParents = append(blockParents, &filecoinmodel.BlockParent{
 				Height:    int64(bh.Height),
-				Version:   version,
+				Version:   tp.Version,
 				Cid:       bh.Cid().String(),
 				ParentCid: parent.String(),
 			})
 		}
 	}
 	if len(blockParents) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.BlockParent), int64(tipSet.Height()), version, &blockParents); err != nil {
-			return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
+		if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.AncestorTs.Height()), tp.Version, &blockParents); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d blockParents", tipSet.Height(), len(blockParents))
-
+	log.Infof("has been process %v block_parent", len(blockParents))
 	return nil
 }

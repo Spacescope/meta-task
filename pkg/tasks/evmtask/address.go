@@ -4,13 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
-	"github.com/Spacescore/observatory-task/pkg/utils"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	builtintypes "github.com/filecoin-project/go-state-types/builtin"
-	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,31 +22,16 @@ func (a *Address) Model() interface{} {
 	return new(evmmodel.Address)
 }
 
-func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	// lazy init actor map
-	if err := utils.InitActorCodeCidMap(ctx, rpc.Node()); err != nil {
-		return errors.Wrap(err, "InitActorCodeCidMap failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(a.Model(), int64(tipSet.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(), int64(tipSet.Height()), version)
-			return nil
-		}
-	}
-
+func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 	var (
 		evmAddresses []*evmmodel.Address
 		m            sync.Map
 	)
 
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, tipSet.Key())
+	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
+		log.Errorf("ChainGetMessagesInTipset[ts: %v, height: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+		return err
 	}
 	for _, message := range messages {
 		if message.Message == nil {
@@ -60,16 +41,17 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 
 		// -----------
 		to := msg.To
-		actor, err := rpc.Node().StateGetActor(ctx, to, tipSet.Key())
+		actor, err := tp.Api.StateGetActor(ctx, to, tp.AncestorTs.Key())
 		if err != nil {
-			log.Errorf("StateGetActor[tipset: %v, height: %v] failed err:%s", tipSet.Key(), tipSet.Height(), err)
+			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", tp.AncestorTs.Key(), tp.AncestorTs.Height(), err)
 			continue
 		}
-		if to != builtintypes.EthereumAddressManagerActorAddr && !utils.IsEVMActor(actor.Code) {
+		if to != builtintypes.EthereumAddressManagerActorAddr && !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) {
 			continue
 		}
+
+		// remove duplicates
 		from := msg.From
-		// 去重
 		_, loaded := m.LoadOrStore(from, true)
 		if loaded {
 			continue
@@ -77,21 +59,21 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 
 		ethFromAddress, err := ethtypes.EthAddressFromFilecoinAddress(from)
 		if err != nil {
-			log.Errorf("EthAddressFromFilecoinAddress: %v failed: %v", from, err)
+			log.Errorf("EthAddressFromFilecoinAddress[from: %v] err: %v", from.String(), err)
 			continue
 		}
-		fromActor, err := rpc.Node().StateGetActor(ctx, from, tipSet.Key())
+		fromActor, err := tp.Api.StateGetActor(ctx, from, tp.AncestorTs.Key())
 		if err != nil {
-			log.Errorf("StateGetActor[from: %v, tipset: %v] failed: %v", from, tipSet.Height(), err)
+			log.Errorf("StateGetActor[from: %v, ts: %v, height: %v] err: %v", from.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
 			continue
 		}
-		if utils.IsEVMActor(fromActor.Code) {
-			log.Infof("from [%s] is evm, ignore", ethFromAddress)
+		if common.NewCidCache(ctx, tp.Api).IsEVMActor(fromActor.Code) {
+			log.Infof("from[%v] is evm, ignore", ethFromAddress.String())
 			continue
 		}
 		address := &evmmodel.Address{
-			Height:          int64(tipSet.Height()),
-			Version:         version,
+			Height:          int64(tp.AncestorTs.Height()),
+			Version:         tp.Version,
 			Address:         ethFromAddress.String(),
 			FilecoinAddress: from.String(),
 			Balance:         fromActor.Balance.String(),
@@ -101,11 +83,11 @@ func (a *Address) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(evmAddresses) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Address),
-			int64(tipSet.Height()), version, &evmAddresses); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
+		if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.AncestorTs.Height()), tp.Version, &evmAddresses); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-	log.Infof("Tipset[%v] has been process %d evm_address", tipSet.Height(), len(evmAddresses))
+	log.Infof("has process %v evm_address", len(evmAddresses))
 	return nil
 }

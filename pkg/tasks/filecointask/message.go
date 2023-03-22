@@ -4,13 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/filecoin-project/lotus/chain/types"
 )
 
 type Message struct {
@@ -24,32 +20,17 @@ func (m *Message) Model() interface{} {
 	return new(filecoinmodel.Message)
 }
 
-func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+func (m *Message) Run(ctx context.Context, tp *common.TaskParameters) error {
+	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(m.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	messages, err := rpc.Node().ChainGetMessagesInTipset(ctx, parentTs.Key())
-	if err != nil {
-		return errors.Wrap(err, "ChainGetMessagesInTipset failed")
+		log.Errorf("ChainGetMessagesInTipset err: %v", err)
+		return err
 	}
 	var messageModels []*filecoinmodel.Message
 	for _, message := range messages {
 		messageModels = append(messageModels, &filecoinmodel.Message{
-			Height:     int64(parentTs.Height()),
-			Version:    version,
+			Height:     int64(tp.AncestorTs.Height()),
+			Version:    tp.Version,
 			Cid:        message.Cid.String(),
 			From:       message.Message.From.String(),
 			To:         message.Message.To.String(),
@@ -65,12 +46,11 @@ func (m *Message) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *
 	}
 
 	if len(messageModels) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
+		if err = common.InsertMany(ctx, new(filecoinmodel.Message), int64(tp.AncestorTs.Height()), tp.Version, &messageModels); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d message", tipSet.Height(), len(messageModels))
-
+	log.Infof("has been process %v message", len(messageModels))
 	return nil
 }

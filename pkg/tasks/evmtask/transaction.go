@@ -3,12 +3,9 @@ package evmtask
 import (
 	"context"
 
-	"github.com/Spacescore/observatory-task/pkg/errors"
-	"github.com/Spacescore/observatory-task/pkg/lotus"
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
-	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/Spacescore/observatory-task/pkg/utils"
-	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,50 +21,38 @@ func (e *Transaction) Model() interface{} {
 	return new(evmmodel.Transaction)
 }
 
-func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error {
-	parentTs, err := rpc.Node().ChainGetTipSet(ctx, tipSet.Parents())
+func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error {
+	tipSetCid, err := tp.AncestorTs.Key().Cid()
 	if err != nil {
-		return errors.Wrap(err, "ChainGetTipSet failed")
-	}
-
-	if !force {
-		existed, err := storage.Existed(e.Model(), int64(parentTs.Height()), version)
-		if err != nil {
-			return errors.Wrap(err, "storage.Existed failed")
-		}
-		if existed {
-			log.Infof("task [%s] has been process (%d,%d), ignore it", e.Name(), int64(parentTs.Height()), version)
-			return nil
-		}
-	}
-
-	tipSetCid, err := parentTs.Key().Cid()
-	if err != nil {
-		return errors.Wrap(err, "tipSetCid failed")
+		log.Errorf("ts.Key().Cid()[ts: %v] err: %v", tp.AncestorTs.String(), err)
+		return err
 	}
 
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthHashFromCid failed")
+		log.Errorf("EthHashFromCid[cid: %v] err: %v", tipSetCid.String(), err)
+		return err
 	}
-	ethBlock, err := rpc.Node().EthGetBlockByHash(ctx, hash, true)
+	ethBlock, err := tp.Api.EthGetBlockByHash(ctx, hash, true)
 	if err != nil {
-		return errors.Wrap(err, "rpc EthGetBlockByHash failed")
+		log.Errorf("EthGetBlockByHash[hash: %v] err: %v", hash.String(), err)
+		return err
 	}
 
 	if ethBlock.Number == 0 {
-		log.Infof("block number == 0")
+		log.Warn("block number == 0")
 		return nil
 	}
-	transactions := ethBlock.Transactions
 
-	var evmTransaction []*evmmodel.Transaction
+	transactions := ethBlock.Transactions
+	evmTransaction := make([]*evmmodel.Transaction, 0)
+
 	for _, transaction := range transactions {
 		tm := transaction.(map[string]interface{})
 
 		et := &evmmodel.Transaction{
-			Height:               int64(parentTs.Height()),
-			Version:              version,
+			Height:               int64(tp.AncestorTs.Height()),
+			Version:              tp.Version,
 			Hash:                 tm["hash"].(string),
 			BlockHash:            tm["blockHash"].(string),
 			From:                 tm["from"].(string),
@@ -85,53 +70,52 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 
 		et.ChainID, err = utils.ParseHexToUint64(tm["chainId"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
 		et.Nonce, err = utils.ParseHexToUint64(tm["nonce"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
 		et.BlockNumber, err = utils.ParseHexToUint64(tm["blockNumber"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
 		et.TransactionIndex, err = utils.ParseHexToUint64(tm["transactionIndex"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
 		et.Type, err = utils.ParseHexToUint64(tm["type"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
 		et.GasLimit, err = utils.ParseHexToUint64(tm["gas"].(string))
 		if err != nil {
-			log.Errorf("ParseHexToUint64 failed: %v", err)
+			log.Errorf("ParseHexToUint64 err: %v", err)
 			continue
 		}
-
 		et.V, err = utils.ParseStrToHex(tm["v"].(string))
 		if err != nil {
-			log.Errorf("ParseStrToHex failed: %v", err)
+			log.Errorf("ParseStrToHex err: %v", err)
 			continue
 		}
 		et.R, err = utils.ParseStrToHex(tm["r"].(string))
 		if err != nil {
-			log.Errorf("ParseStrToHex failed: %v", err)
+			log.Errorf("ParseStrToHex err: %v", err)
 			continue
 		}
 		et.S, err = utils.ParseStrToHex(tm["s"].(string))
 		if err != nil {
-			log.Errorf("ParseStrToHex failed: %v", err)
+			log.Errorf("ParseStrToHex err: %v", err)
 			continue
 		}
 		et.Input, err = utils.ParseStrToHex(tm["input"].(string))
 		if err != nil {
-			log.Errorf("ParseStrToHex failed: %v", err)
+			log.Errorf("ParseStrToHex err: %v", err)
 			continue
 		}
 
@@ -139,12 +123,11 @@ func (e *Transaction) Run(ctx context.Context, rpc *lotus.Rpc, version int, tipS
 	}
 
 	if len(evmTransaction) > 0 {
-		if err := storage.DelOldVersionAndWriteMany(ctx, new(evmmodel.Transaction), int64(parentTs.Height()), version, &evmTransaction); err != nil {
-			return errors.Wrap(err, "storage.WriteMany failed")
+		if err = common.InsertMany(ctx, new(evmmodel.Transaction), int64(tp.AncestorTs.Height()), tp.Version, &evmTransaction); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
 		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d evm transaction", tipSet.Height(), len(evmTransaction))
-
+	log.Infof("has been process %v evm_transaction", len(evmTransaction))
 	return nil
 }

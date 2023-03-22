@@ -2,8 +2,7 @@ package storage
 
 import (
 	"context"
-
-	"github.com/Spacescore/observatory-task/config"
+	// "github.com/Spacescore/observatory-task/config"
 )
 
 var storageMap = make(map[string]Storage)
@@ -22,10 +21,10 @@ func GetStorage(name string) Storage {
 // Storage factory
 type Storage interface {
 	Name() string
-	InitFromConfig(ctx context.Context, storageCFG *config.Storage) error
+	// InitFromConfig(ctx context.Context, storageCFG *config.Storage) error
 	Existed(m interface{}, height int64, version int) (bool, error)
-	DelOldVersionAndWrite(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
-	DelOldVersionAndWriteMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
+	Insert(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
+	Inserts(ctx context.Context, t interface{}, height int64, version int, m interface{}) error
 }
 
 // Database sync table when storage is database

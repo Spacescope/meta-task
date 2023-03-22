@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Spacescore/observatory-task/pkg/lotus"
-	"github.com/Spacescore/observatory-task/pkg/storage"
+	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/Spacescore/observatory-task/pkg/tasks/evmtask"
 	"github.com/Spacescore/observatory-task/pkg/tasks/filecointask"
-	"github.com/filecoin-project/lotus/chain/types"
 )
 
 var taskMap = make(map[string]Task)
@@ -32,7 +30,7 @@ func GetTask(name string) Task {
 type Task interface {
 	Name() string
 	Model() interface{}
-	Run(ctx context.Context, rpc *lotus.Rpc, version int, tipSet *types.TipSet, force bool, storage storage.Storage) error
+	Run(context.Context, *common.TaskParameters) error
 }
 
 func init() {

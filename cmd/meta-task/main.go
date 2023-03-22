@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -36,7 +37,8 @@ func NewRootCommand() *cobra.Command {
 }
 
 func entry() error {
-	return busi.Start()
+	busi.NewServer(context.Background()).Start()
+	return nil
 }
 
 func main() {
