@@ -10,7 +10,8 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	lotusapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/go-redis/redis"
+
+	redis "github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Spacescore/observatory-task/internal/busi/core/consume"
@@ -51,7 +52,7 @@ func newMetaTask(cf *utils.MetaTask) *MetaTask {
 	})
 
 	log.Infof("connect to mq: %v", cf.MQ)
-	if err := rdb.Ping().Err(); err != nil {
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -107,7 +108,7 @@ func (s *MetaTask) Watcher(ctx context.Context) (bool, error) {
 }
 
 func (s *MetaTask) fetchMessage(ctx context.Context, api *lotusapi.FullNodeStruct, taskPlugin tasks.Task) {
-	result, err := s.rdb.BRPop(time.Second*30, s.TaskName).Result()
+	result, err := s.rdb.BRPop(ctx, time.Second*30, s.TaskName).Result()
 	if err != nil {
 		if err == redis.Nil {
 			return
