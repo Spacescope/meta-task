@@ -21,17 +21,6 @@ func (m *Message) Model() interface{} {
 }
 
 func (m *Message) Run(ctx context.Context, tp *common.TaskParameters) error {
-	if !tp.Force {
-		// existed, err := storage.Existed(m.Model(), int64(parentTs.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", m.Name(), int64(parentTs.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
 		log.Errorf("ChainGetMessagesInTipset err: %v", err)
@@ -57,12 +46,11 @@ func (m *Message) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(messageModels) > 0 {
-		// if err := storage.Inserts(ctx, new(filecoinmodel.Message), int64(parentTs.Height()), version, &messageModels); err != nil {
-		// 	return errors.Wrap(err, "storage.WriteMany failed")
-		// }
+		if err = common.InsertMany(ctx, new(filecoinmodel.Message), int64(tp.CurrentTs.Height()), tp.Version, &messageModels); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
+		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d message", tp.AncestorTs.Height(), len(messageModels))
-
+	log.Infof("has been process %v message", len(messageModels))
 	return nil
 }

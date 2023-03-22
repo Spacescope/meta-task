@@ -1,23 +1,9 @@
-[task]
-    name = "block_header"
+title = "spacescope-meta-task"
 
-[storage]
-    name = "pgsql"
-
-[storage.params]
-    dsn = "postgresql://user:password@ip:port/dbname?sslmode=disable"
-
-[lotus_cluster]
-    addr = "ws://ip:1234/rpc/v1"
-
-[chain_notify]
-    host = ""
-
-[chain_notify.mq]
-    name = "redis"
-
-[chain_notify.mq.params]
-    dsn = "redis://127.0.0.1:6379/0"
-
-[listen]
-    addr = ":7006"
+[meta-task]
+    listen = ":7006"
+    db = "postgresql://user:password@ip:port/dbname?sslmode=disable"
+    task_name = "evm_block_header"
+    lotus = "ws://$LotusIp:1234/rpc/v1"
+    mq = "$RedisIp:6379"
+    report_server = ""

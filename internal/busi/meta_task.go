@@ -130,6 +130,7 @@ func (s *MetaTask) fetchMessage(ctx context.Context, api *lotusapi.FullNodeStruc
 		CurrentTs:    event.TipSet,
 		Force:        event.Force,
 	}
+
 	consume.ConsumeTipset(ctx, &tp, taskPlugin)
 }
 

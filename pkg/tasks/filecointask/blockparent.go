@@ -21,17 +21,6 @@ func (b *BlockParent) Model() interface{} {
 }
 
 func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error {
-	if !tp.Force {
-		// existed, err := storage.Existed(b.Model(), int64(tipSet.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(tipSet.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	var blockParents []*filecoinmodel.BlockParent
 	for _, bh := range tp.CurrentTs.Blocks() {
 		for _, parent := range bh.Parents {
@@ -44,12 +33,11 @@ func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error 
 		}
 	}
 	if len(blockParents) > 0 {
-		// if err := storage.Inserts(ctx, new(filecoinmodel.BlockParent), int64(tipSet.Height()), version, &blockParents); err != nil {
-		// 	return errors.Wrap(err, fmt.Sprintf("storage %s write failed", storage.Name()))
-		// }
+		if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.CurrentTs.Height()), tp.Version, &blockParents); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
+		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d blockParents", tp.CurrentTs.Height(), len(blockParents))
-
+	log.Infof("has been process %v block_parent", len(blockParents))
 	return nil
 }

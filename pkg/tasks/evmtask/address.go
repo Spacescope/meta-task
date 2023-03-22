@@ -6,7 +6,6 @@ import (
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
-	"github.com/Spacescore/observatory-task/pkg/utils"
 	builtintypes "github.com/filecoin-project/go-state-types/builtin"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
@@ -24,23 +23,6 @@ func (a *Address) Model() interface{} {
 }
 
 func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
-	// lazy init actor map
-	if err := utils.InitActorCodeCidMap(ctx, tp.Api); err != nil {
-		log.Errorf("InitActorCodeCidMap err: %v", err)
-		return err
-	}
-
-	if !tp.Force {
-		// existed, err := storage.Existed(a.Model(), int64(tipSet.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", a.Name(), int64(tipSet.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	var (
 		evmAddresses []*evmmodel.Address
 		m            sync.Map
@@ -48,7 +30,7 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 
 	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
-		log.Errorf("ChainGetMessagesInTipset err: %v", err)
+		log.Errorf("ChainGetMessagesInTipset[ts: %v, height: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
 		return err
 	}
 	for _, message := range messages {
@@ -61,14 +43,15 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 		to := msg.To
 		actor, err := tp.Api.StateGetActor(ctx, to, tp.AncestorTs.Key())
 		if err != nil {
-			log.Errorf("StateGetActor[tipset: %v, height: %v] failed err:%s", tp.AncestorTs.Key(), tp.AncestorTs.Height(), err)
+			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", tp.AncestorTs.Key(), tp.AncestorTs.Height(), err)
 			continue
 		}
-		if to != builtintypes.EthereumAddressManagerActorAddr && !utils.IsEVMActor(actor.Code) {
+		if to != builtintypes.EthereumAddressManagerActorAddr && !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) {
 			continue
 		}
+
+		// remove duplicates
 		from := msg.From
-		// 去重
 		_, loaded := m.LoadOrStore(from, true)
 		if loaded {
 			continue
@@ -76,16 +59,16 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 
 		ethFromAddress, err := ethtypes.EthAddressFromFilecoinAddress(from)
 		if err != nil {
-			log.Errorf("EthAddressFromFilecoinAddress: %v failed: %v", from, err)
+			log.Errorf("EthAddressFromFilecoinAddress[from: %v] err: %v", from.String(), err)
 			continue
 		}
 		fromActor, err := tp.Api.StateGetActor(ctx, from, tp.AncestorTs.Key())
 		if err != nil {
-			log.Errorf("StateGetActor[from: %v, tipset: %v] failed: %v", from, tp.AncestorTs.Height(), err)
+			log.Errorf("StateGetActor[from: %v, ts: %v, height: %v] err: %v", from.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
 			continue
 		}
-		if utils.IsEVMActor(fromActor.Code) {
-			log.Infof("from [%s] is evm, ignore", ethFromAddress)
+		if common.NewCidCache(ctx, tp.Api).IsEVMActor(fromActor.Code) {
+			log.Infof("from[%v] is evm, ignore", ethFromAddress.String())
 			continue
 		}
 		address := &evmmodel.Address{
@@ -100,10 +83,11 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(evmAddresses) > 0 {
-		// if err := storage.Inserts(ctx, new(evmmodel.Address), int64(tipSet.Height()), version, &evmAddresses); err != nil {
-		// 	return errors.Wrap(err, "storage.WriteMany failed")
-		// }
+		if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.CurrentTs.Height()), tp.Version, &evmAddresses); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
+		}
 	}
-	log.Infof("Tipset[%v] has been process %v evm_address", tp.AncestorTs.Height(), len(evmAddresses))
+	log.Infof("has process %v evm_address", len(evmAddresses))
 	return nil
 }

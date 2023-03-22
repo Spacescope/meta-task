@@ -1,10 +1,16 @@
 package common
 
 import (
-	"context"
+	"log"
 
+	"github.com/Spacescore/observatory-task/pkg/utils"
 	lotusapi "github.com/filecoin-project/lotus/api"
+
+	"context"
+	"sync"
+
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/ipfs/go-cid"
 )
 
 type TaskParameters struct {
@@ -30,4 +36,101 @@ func GetAncestorTipset(ctx context.Context, lotus *lotusapi.FullNodeStruct, ts *
 	}
 
 	return ancestor, nil
+}
+
+type CidCache struct {
+	CidCache map[string]cid.Cid
+}
+
+var (
+	once sync.Once
+	cc   CidCache
+)
+
+// InitActorCodeCidMap init actor code map
+func NewCidCache(ctx context.Context, lotus *lotusapi.FullNodeStruct) *CidCache {
+	var err error
+
+	once.Do(func() {
+		version, err := lotus.StateNetworkVersion(ctx, types.EmptyTSK)
+		if err != nil {
+			return
+		}
+		cc.CidCache, err = lotus.StateActorCodeCIDs(ctx, version)
+		if err != nil {
+			return
+		}
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &cc
+}
+
+// IsEVMActor judge is evm actor
+func (c *CidCache) IsEVMActor(codeCid cid.Cid) bool {
+	return c.CidCache["evm"] == codeCid
+}
+
+// FindActorNameByCodeCid find actor name by code cide
+func (c *CidCache) FindActorNameByCodeCid(codeCid cid.Cid) string {
+	for name, c := range c.CidCache {
+		if c.KeyString() == codeCid.KeyString() {
+			return name
+		}
+	}
+	return ""
+}
+
+// Existed judge model exist or not
+func Existed(m interface{}, height int64, version int) (bool, error) {
+	count, err := utils.EngineGroup[utils.TaskDB].Where("height = ? and version = ?", height, version).Count(m)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func InsertOne(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+	session := utils.EngineGroup[utils.TaskDB].NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	_, err := session.Where("height = ? and version <= ?", height, version).Delete(t)
+	if err != nil {
+		return err
+	}
+
+	_, err = session.InsertOne(m)
+	if err != nil {
+		return err
+	}
+	session.Commit()
+
+	return nil
+}
+
+func InsertMany(ctx context.Context, t interface{}, height int64, version int, m interface{}) error {
+	session := utils.EngineGroup[utils.TaskDB].NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	_, err := session.Where("height = ? and version <= ?", height, version).Delete(t)
+	if err != nil {
+		return err
+	}
+
+	_, err = session.Insert(m)
+	if err != nil {
+		return err
+	}
+	session.Commit()
+
+	return nil
 }

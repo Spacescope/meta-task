@@ -6,7 +6,6 @@ import (
 
 	"github.com/Spacescore/observatory-task/pkg/models/filecoinmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
-	"github.com/Spacescore/observatory-task/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,26 +22,9 @@ func (r *RawActor) Model() interface{} {
 }
 
 func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
-	// lazy init actor map
-	if err := utils.InitActorCodeCidMap(ctx, tp.Api); err != nil {
-		log.Errorf("InitActorCodeCidMap err: %v", err)
-		return err
-	}
-
-	if !tp.Force {
-		// existed, err := storage.Existed(r.Model(), int64(parentTs.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", r.Name(), int64(parentTs.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	changedActors, err := tp.Api.StateChangedActors(ctx, tp.AncestorTs.ParentState(), tp.CurrentTs.ParentState())
 	if err != nil {
-		log.Errorf("StateChangedActors err: %v", err)
+		log.Errorf("StateChangedActors[pTs: %v, pHeight: %v, cTs: %v, cHeight: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), tp.CurrentTs.String(), tp.CurrentTs.Height(), err)
 		return err
 	}
 
@@ -51,9 +33,9 @@ func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
 		exitRa    = make(map[string]*filecoinmodel.RawActor)
 	)
 	for _, ac := range changedActors {
-		actorName := utils.FindActorNameByCodeCid(ac.Code)
+		actorName := common.NewCidCache(ctx, tp.Api).FindActorNameByCodeCid(ac.Code)
 		if actorName == "" {
-			log.Warn("can not find cid:[%s] actor name")
+			log.Warnf("FindActorNameByCodeCid[actor: %v] err: not found", ac.Code.String())
 			continue
 		}
 		ra := &filecoinmodel.RawActor{
@@ -78,12 +60,11 @@ func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	if len(rawActors) > 0 {
-		// if err := storage.Inserts(ctx, new(filecoinmodel.RawActor), int64(parentTs.Height()), version, &rawActors); err != nil {
-		// 	return errors.Wrap(err, "storage.WriteMany failed")
-		// }
+		if err = common.InsertMany(ctx, new(filecoinmodel.RawActor), int64(tp.CurrentTs.Height()), tp.Version, &rawActors); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
+		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d raw actor", tp.AncestorTs.Height(), len(rawActors))
-
+	log.Infof("has been process %v raw_actor", len(rawActors))
 	return nil
 }

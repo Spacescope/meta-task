@@ -21,17 +21,6 @@ func (b *BlockMessage) Model() interface{} {
 }
 
 func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error {
-	if !tp.Force {
-		// existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	var blockMessages []*filecoinmodel.BlockMessage
 
 	for _, block := range tp.AncestorTs.Blocks() {
@@ -40,6 +29,7 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 			log.Errorf("ChainGetBlockMessages error: %v", err)
 			continue
 		}
+
 		for _, message := range msg.SecpkMessages {
 			bm := &filecoinmodel.BlockMessage{
 				Height:     int64(tp.AncestorTs.Height()),
@@ -62,12 +52,11 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 	}
 
 	if len(blockMessages) > 0 {
-		// if err := storage.Inserts(ctx, new(filecoinmodel.BlockMessage), int64(parentTs.Height()), version, &blockMessages); err != nil {
-		// 	return errors.Wrap(err, "storage.WriteMany failed")
-		// }
+		if err := common.InsertMany(ctx, new(filecoinmodel.BlockMessage), int64(tp.CurrentTs.Height()), tp.Version, &blockMessages); err != nil {
+			log.Errorf("Sql Engine err: %v", err)
+			return err
+		}
 	}
-
-	log.Infof("Tipset[%v] has been process %d messages", tp.AncestorTs.Height(), len(blockMessages))
-
+	log.Infof("has been process %v block_message", len(blockMessages))
 	return nil
 }

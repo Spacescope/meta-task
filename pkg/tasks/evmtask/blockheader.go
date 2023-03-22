@@ -22,41 +22,29 @@ func (b *BlockHeader) Model() interface{} {
 }
 
 func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error {
-	if !tp.Force {
-		// existed, err := storage.Existed(b.Model(), int64(parentTs.Height()), version)
-		// if err != nil {
-		// 	return errors.Wrap(err, "storage.Existed failed")
-		// }
-		// if existed {
-		// 	log.Infof("task [%s] has been process (%d,%d), ignore it", b.Name(), int64(parentTs.Height()), version)
-		// 	return nil
-		// }
-	}
-
 	tipSetCid, err := tp.AncestorTs.Key().Cid()
 	if err != nil {
-		log.Errorf("ts.Key().Cid() err: %v", err)
+		log.Errorf("ts.Key().Cid()[ts: %v] err: %v", tp.AncestorTs.String(), err)
 		return err
 	}
 
 	hash, err := ethtypes.EthHashFromCid(tipSetCid)
 	if err != nil {
-		log.Errorf("ethtypes.EthHashFromCid err: %v", err)
+		log.Errorf("EthHashFromCid[tsCid: %v] err: %v", tipSetCid.String(), err)
 		return err
 	}
 
 	ethBlock, err := tp.Api.EthGetBlockByHash(ctx, hash, false)
 	if err != nil {
-		log.Errorf("EthGetBlockByHash err: %v", err)
+		log.Errorf("EthGetBlockByHash[hash: %v] err: %v", hash.String(), err)
 		return err
 	}
 	if ethBlock.Number == 0 {
-		log.Infof("block number == 0")
+		log.Warn("block number == 0")
 		return nil
 	}
 
-	// blockHeader := &evmmodel.BlockHeader{
-	_ = &evmmodel.BlockHeader{
+	blockHeader := &evmmodel.BlockHeader{
 		Height:           int64(tp.AncestorTs.Height()),
 		Version:          tp.Version,
 		Hash:             hash.String(),
@@ -78,10 +66,9 @@ func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error 
 		Sha3Uncles:       ethBlock.Sha3Uncles.String(),
 	}
 
-	// if err = storage.Insert(ctx, new(evmmodel.BlockHeader),
-	// 	int64(parentTs.Height()), version, blockHeader); err != nil {
-	// 	return errors.Wrap(err, "storageWrite failed")
-	// }
-
+	if err = common.InsertOne(ctx, new(evmmodel.BlockHeader), int64(tp.CurrentTs.Height()), tp.Version, blockHeader); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
+	}
 	return nil
 }
