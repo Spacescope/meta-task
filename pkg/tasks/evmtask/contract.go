@@ -28,7 +28,7 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		return err
 	}
 
-	var contracts []*evmmodel.Contract
+	var evmContracts []*evmmodel.Contract
 
 	for _, actor := range changedActors {
 		if !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) || actor.Address == nil {
@@ -52,7 +52,7 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 				log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
 				continue
 			}
-			contracts = append(contracts, &evmmodel.Contract{
+			evmContracts = append(evmContracts, &evmmodel.Contract{
 				Height:          int64(tp.AncestorTs.Height()),
 				Version:         tp.Version,
 				FilecoinAddress: address.String(),
@@ -64,12 +64,12 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 	}
 
-	if len(contracts) > 0 {
-		if err = common.InsertContracts(ctx, contracts); err != nil {
+	if len(evmContracts) > 0 {
+		if err = common.InsertMany(ctx, new(evmmodel.Contract), int64(tp.AncestorTs.Height()), tp.Version, &evmContracts); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}
 	}
-	log.Infof("has been process %v evm_contract", len(contracts))
+	log.Infof("has been process %v evm_contract", len(evmContracts))
 	return nil
 }

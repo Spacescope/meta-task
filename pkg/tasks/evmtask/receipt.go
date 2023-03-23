@@ -48,7 +48,7 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	transactions := ethBlock.Transactions
-	receipts := make([]*evmmodel.Receipt, 0)
+	evmReceipts := make([]*evmmodel.Receipt, 0)
 
 	for _, transaction := range transactions {
 		tm, ok := transaction.(map[string]interface{})
@@ -94,15 +94,15 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 			r.To = receipt.To.String()
 		}
 
-		receipts = append(receipts, r)
+		evmReceipts = append(evmReceipts, r)
 	}
 
-	if len(receipts) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &receipts); err != nil {
+	if len(evmReceipts) > 0 {
+		if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &evmReceipts); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}
 	}
-	log.Infof("has been process %v evm_receipt", len(receipts))
+	log.Infof("has been process %v evm_receipt", len(evmReceipts))
 	return nil
 }
