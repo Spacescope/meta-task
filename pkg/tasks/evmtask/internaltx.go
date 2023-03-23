@@ -30,8 +30,8 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 	}
 
 	var (
-		internalTxs []*evmmodel.InternalTX
-		sm          sync.Map
+		evmInternalTxns []*evmmodel.InternalTX
+		sm              sync.Map
 	)
 
 	for _, message := range messages {
@@ -78,16 +78,16 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 				Type:       uint64(subMessage.Method),
 				Value:      subMessage.Value.String(),
 			}
-			internalTxs = append(internalTxs, internalTx)
+			evmInternalTxns = append(evmInternalTxns, internalTx)
 		}
 	}
 
-	if len(internalTxs) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.InternalTX), int64(tp.AncestorTs.Height()), tp.Version, &internalTxs); err != nil {
+	if len(evmInternalTxns) > 0 {
+		if err = common.InsertMany(ctx, new(evmmodel.InternalTX), int64(tp.AncestorTs.Height()), tp.Version, &evmInternalTxns); err != nil {
 			log.Errorf("Sql Engine err: %v", err)
 			return err
 		}
 	}
-	log.Infof("has been process %v evm_internal_tx", len(internalTxs))
+	log.Infof("has been process %v evm_internal_tx", len(evmInternalTxns))
 	return nil
 }
