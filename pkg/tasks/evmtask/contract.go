@@ -55,8 +55,9 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 
 		actorState, err := tp.Api.StateGetActor(ctx, address, tp.AncestorTs.Key())
-		if err == nil && actorState != nil {
+		if err != nil {
 			log.Warnf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+		} else if err == nil && actorState != nil {
 			contract.Balance = actorState.Balance.String()
 			contract.Nonce = actorState.Nonce
 		}
