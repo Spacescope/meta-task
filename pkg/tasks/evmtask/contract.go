@@ -36,32 +36,32 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 
 		address := *actor.Address
-		actorState, err := tp.Api.StateGetActor(ctx, address, tp.AncestorTs.Key())
+		ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
 		if err != nil {
-			log.Errorf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+			log.Errorf("EthAddressFromFilecoinAddress[addr: %v] err: %v", address.String(), err)
 			continue
 		}
-		if actorState != nil {
-			ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
-			if err != nil {
-				log.Errorf("EthAddressFromFilecoinAddress[addr: %v] err: %v", address.String(), err)
-				continue
-			}
-			byteCode, err := tp.Api.EthGetCode(ctx, ethAddress, "pending")
-			if err != nil {
-				log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
-				continue
-			}
-			evmContracts = append(evmContracts, &evmmodel.Contract{
-				Height:          int64(tp.AncestorTs.Height()),
-				Version:         tp.Version,
-				FilecoinAddress: address.String(),
-				Address:         ethAddress.String(),
-				Balance:         actorState.Balance.String(),
-				Nonce:           actorState.Nonce,
-				ByteCode:        hex.EncodeToString(byteCode),
-			})
+		byteCode, err := tp.Api.EthGetCode(ctx, ethAddress, "pending")
+		if err != nil {
+			log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
+			continue
 		}
+		contract := &evmmodel.Contract{
+			Height:          int64(tp.AncestorTs.Height()),
+			Version:         tp.Version,
+			FilecoinAddress: address.String(),
+			Address:         ethAddress.String(),
+			ByteCode:        hex.EncodeToString(byteCode),
+		}
+
+		actorState, err := tp.Api.StateGetActor(ctx, address, tp.AncestorTs.Key())
+		if err == nil && actorState != nil {
+			log.Warnf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+			contract.Balance = actorState.Balance.String()
+			contract.Nonce = actorState.Nonce
+		}
+
+		evmContracts = append(evmContracts, contract)
 	}
 
 	if len(evmContracts) > 0 {
