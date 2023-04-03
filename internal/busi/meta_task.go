@@ -84,11 +84,7 @@ func MetaTaskStart(ctx context.Context, done func(), cf *utils.MetaTask) {
 }
 
 func (s *MetaTask) Watcher(ctx context.Context) (bool, error) {
-	api, closer, err := s.lotusHandshake(ctx)
-	if err != nil {
-		log.Errorf("lotusHandshake error: %s", err)
-		return false, err
-	}
+	api, closer, _ := s.lotusHandshake(ctx)
 	defer closer()
 
 	for {
@@ -135,26 +131,13 @@ func (s *MetaTask) fetchMessage(ctx context.Context, api *lotusapi.FullNodeStruc
 	consume.ConsumeTipset(ctx, &tp, taskPlugin)
 }
 
-// Exponential backoff
 func (s *MetaTask) lotusHandshake(ctx context.Context) (*lotusapi.FullNodeStruct, jsonrpc.ClientCloser, error) {
 	log.Infof("connect to lotus0: %v", s.Lotus)
 
-	const MAXSLEEP int = 512
-	var (
-		err    error
-		closer jsonrpc.ClientCloser
-	)
-
 	var api lotusapi.FullNodeStruct
-	for numsec := 1; numsec < MAXSLEEP; numsec <<= 1 {
-		closer, err = jsonrpc.NewMergeClient(context.Background(), s.Lotus, "Filecoin", []interface{}{&api.Internal, &api.CommonStruct.Internal}, nil)
-		if err == nil {
-			return &api, closer, nil
-		}
-		log.Errorf("connecting to lotus failed: %s", err)
-		if numsec <= MAXSLEEP/2 {
-			time.Sleep(time.Duration(numsec) * time.Second)
-		}
+	closer, err := jsonrpc.NewMergeClient(context.Background(), s.Lotus, "Filecoin", []interface{}{&api.Internal, &api.CommonStruct.Internal}, nil)
+	if err != nil {
+		log.Fatalf("lotusHandshake[%v] error: %v", s.Lotus, err)
 	}
-	return nil, nil, err
+	return &api, closer, nil
 }
