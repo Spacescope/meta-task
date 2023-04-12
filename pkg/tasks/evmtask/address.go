@@ -37,21 +37,20 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 		if message.Message == nil {
 			continue
 		}
-		msg := message.Message
 
 		// -----------
-		to := msg.To
-		actor, err := tp.Api.StateGetActor(ctx, to, tp.AncestorTs.Key())
+		to := message.Message.To
+		toActor, err := tp.Api.StateGetActor(ctx, to, tp.AncestorTs.Key())
 		if err != nil {
 			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", tp.AncestorTs.Key(), tp.AncestorTs.Height(), err)
 			continue
 		}
-		if to != builtintypes.EthereumAddressManagerActorAddr && !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) {
+		if to != builtintypes.EthereumAddressManagerActorAddr && !common.NewCidCache(ctx, tp.Api).IsEVMActor(toActor.Code) {
 			continue
 		}
 
 		// remove duplicates
-		from := msg.From
+		from := message.Message.From
 		_, loaded := m.LoadOrStore(from, true)
 		if loaded {
 			continue
