@@ -8,11 +8,13 @@ import (
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/goccy/go-json"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/sirupsen/logrus"
 )
 
 // Receipt parse evm transaction receipt
 type Receipt struct {
+	actorCache *lru.Cache
 }
 
 func (e *Receipt) Name() string {
@@ -24,42 +26,28 @@ func (e *Receipt) Model() interface{} {
 }
 
 func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
-	tipSetCid, err := tp.AncestorTs.Key().Cid()
+	messages, err := tp.Api.ChainGetMessagesInTipset(ctx, tp.AncestorTs.Key())
 	if err != nil {
-		log.Errorf("ts.Key().Cid()[ts: %v] err: %v", tp.AncestorTs.String(), err)
+		log.Errorf("ChainGetMessagesInTipset[ts: %v, height: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
 		return err
 	}
 
-	hash, err := ethtypes.EthHashFromCid(tipSetCid)
-	if err != nil {
-		log.Errorf("EthHashFromCid[cid: %v] err: %v", tipSetCid.String(), err)
-		return err
-	}
-
-	ethBlock, err := tp.Api.EthGetBlockByHash(ctx, hash, true)
-	if err != nil {
-		log.Errorf("EthGetBlockByHash[hash: %v] err: %v", hash.String(), err)
-		return err
-	}
-
-	if ethBlock.Number == 0 {
-		log.Warn("block number == 0")
-		return nil
-	}
-
-	transactions := ethBlock.Transactions
 	evmReceipts := make([]*evmmodel.Receipt, 0)
-
-	for _, transaction := range transactions {
-		tm, ok := transaction.(map[string]interface{})
-		if !ok {
+	for _, message := range messages {
+		if message.Message == nil {
 			continue
 		}
 
-		ethHash, err := ethtypes.ParseEthHash(tm["hash"].(string))
-		if err != nil {
-			log.Errorf("ParseEthHash[hash: %v] err: %v", tm["hash"].(string), err)
+		// determine if "to" is evm actor.
+		isEVMActor, err := common.NewCidLRU(ctx, tp.Api).IsEVMActor(ctx, message.Message.To, tp.AncestorTs)
+		if err != nil || !isEVMActor {
 			continue
+		}
+
+		ethHash, err := ethtypes.EthHashFromCid(message.Cid)
+		if err != nil {
+			log.Errorf("EthHashFromCid[cid: %v] err: %v", message.Cid.String(), err)
+			return err
 		}
 		receipt, err := tp.Api.EthGetTransactionReceipt(ctx, ethHash)
 		if err != nil {
