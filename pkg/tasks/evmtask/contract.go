@@ -6,11 +6,14 @@ import (
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
+	lotusapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/sirupsen/logrus"
 )
 
 type Contract struct {
+	byteCodeCache *lru.Cache
 }
 
 func (c *Contract) Name() string {
@@ -19,6 +22,30 @@ func (c *Contract) Name() string {
 
 func (c *Contract) Model() interface{} {
 	return new(evmmodel.Contract)
+}
+
+func (c *Contract) getByteCode(ctx context.Context, lotus *lotusapi.FullNodeStruct, ethAddress ethtypes.EthAddress) (ethtypes.EthBytes, error) {
+	if c.byteCodeCache == nil {
+		var err error
+		c.byteCodeCache, err = lru.New(512)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	byteCodeFromCache, ok := c.byteCodeCache.Get(ethAddress)
+	if ok {
+		return byteCodeFromCache.(ethtypes.EthBytes), nil
+	} else {
+		byteCode, err := lotus.EthGetCode(ctx, ethAddress, "pending")
+		if err != nil {
+			log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
+			return nil, err
+		} else {
+			c.byteCodeCache.Add(ethAddress, byteCode)
+			return byteCode, nil
+		}
+	}
 }
 
 func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
@@ -41,11 +68,11 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 			log.Errorf("EthAddressFromFilecoinAddress[addr: %v] err: %v", address.String(), err)
 			continue
 		}
-		byteCode, err := tp.Api.EthGetCode(ctx, ethAddress, "pending")
+		byteCode, err := c.getByteCode(ctx, tp.Api, ethAddress)
 		if err != nil {
-			log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
 			continue
 		}
+
 		contract := &evmmodel.Contract{
 			Height:          int64(tp.AncestorTs.Height()),
 			Version:         tp.Version,

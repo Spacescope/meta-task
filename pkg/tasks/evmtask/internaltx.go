@@ -35,6 +35,15 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 	)
 
 	for _, message := range messages {
+		if message.Message == nil {
+			continue
+		}
+
+		isEVMActor, err := common.NewCidLRU(ctx, tp.Api).IsEVMActor(ctx, message.Message.To, tp.AncestorTs)
+		if err != nil || !isEVMActor {
+			continue
+		}
+
 		invocs, err := tp.Api.StateReplay(ctx, tp.AncestorTs.Key(), message.Cid)
 		if err != nil {
 			log.Errorf("StateReplay[ts: %v, height: %v, cid: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), message.Cid.String(), err)

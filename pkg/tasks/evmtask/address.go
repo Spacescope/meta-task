@@ -39,13 +39,8 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 
 		// -----------
-		to := message.Message.To
-		toActor, err := tp.Api.StateGetActor(ctx, to, tp.AncestorTs.Key())
-		if err != nil {
-			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", tp.AncestorTs.Key(), tp.AncestorTs.Height(), err)
-			continue
-		}
-		if to != builtintypes.EthereumAddressManagerActorAddr && !common.NewCidCache(ctx, tp.Api).IsEVMActor(toActor.Code) {
+		isEVMActor, err := common.NewCidLRU(ctx, tp.Api).IsEVMActor(ctx, message.Message.To, tp.AncestorTs)
+		if err != nil || (message.Message.To != builtintypes.EthereumAddressManagerActorAddr && !isEVMActor) {
 			continue
 		}
 

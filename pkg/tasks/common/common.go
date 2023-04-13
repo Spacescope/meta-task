@@ -1,9 +1,10 @@
 package common
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/Spacescore/observatory-task/pkg/utils"
+	"github.com/filecoin-project/go-address"
 	lotusapi "github.com/filecoin-project/lotus/api"
 
 	"context"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
+
+	lru "github.com/hashicorp/golang-lru"
+	log "github.com/sirupsen/logrus"
 )
 
 type TaskParameters struct {
@@ -42,28 +46,33 @@ type CidCache struct {
 	CidCache map[string]cid.Cid
 }
 
+type CidLRU struct {
+	cidLRU *lru.Cache
+	lotus  *lotusapi.FullNodeStruct
+}
+
 var (
-	once sync.Once
-	cc   CidCache
+	onceCidCache sync.Once
+	onceCidLRU   sync.Once
+	cc           CidCache
+	cl           CidLRU
 )
+
+// -------------------------------------------------------------------------------
 
 // InitActorCodeCidMap init actor code map
 func NewCidCache(ctx context.Context, lotus *lotusapi.FullNodeStruct) *CidCache {
-	var err error
-
-	once.Do(func() {
+	onceCidCache.Do(func() {
 		version, err := lotus.StateNetworkVersion(ctx, types.EmptyTSK)
 		if err != nil {
 			return
 		}
 		cc.CidCache, err = lotus.StateActorCodeCIDs(ctx, version)
 		if err != nil {
+			log.Fatal(err)
 			return
 		}
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
 	return &cc
 }
 
@@ -81,6 +90,57 @@ func (c *CidCache) FindActorNameByCodeCid(codeCid cid.Cid) string {
 	}
 	return ""
 }
+
+// -------------------------------------------------------------------------------
+
+// InitActorCodeCidLRU init actor code lru
+func NewCidLRU(ctx context.Context, lotus *lotusapi.FullNodeStruct) *CidLRU {
+	onceCidLRU.Do(func() {
+		var err error
+		cl.cidLRU, err = lru.New(256)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cl.lotus = lotus
+	})
+	return &cl
+}
+
+func (c *CidLRU) getCacheActorCode(key string) (cid.Cid, bool) {
+	code, ok := c.cidLRU.Get(key)
+	if ok {
+		return code.(cid.Cid), ok
+	} else {
+		return cid.Cid{}, ok
+	}
+}
+
+func (c *CidLRU) setCacheActorCode(key string, value interface{}) {
+	c.cidLRU.Add(key, value)
+}
+
+func (c *CidLRU) IsEVMActor(ctx context.Context, messageToAddress address.Address, ts *types.TipSet) (bool, error) {
+	var (
+		toActor *types.Actor
+		err     error
+	)
+	messageActorKey := fmt.Sprintf("%v-%v", messageToAddress.String(), ts.String())
+
+	toActorCode, ok := c.getCacheActorCode(messageActorKey)
+	if ok {
+		return NewCidCache(ctx, c.lotus).IsEVMActor(toActorCode), nil
+	} else {
+		toActor, err = c.lotus.StateGetActor(ctx, messageToAddress, ts.Key())
+		if err != nil {
+			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", ts.Key(), ts.Height(), err)
+			return false, err
+		}
+		c.setCacheActorCode(messageActorKey, toActor.Code)
+		return NewCidCache(ctx, c.lotus).IsEVMActor(toActor.Code), nil
+	}
+}
+
+// -------------------------------------------------------------------------------
 
 // Existed judge model exist or not
 func Existed(m interface{}, height int64, version int) (bool, error) {
