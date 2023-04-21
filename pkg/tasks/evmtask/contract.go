@@ -39,7 +39,7 @@ func (c *Contract) getByteCode(ctx context.Context, lotus *lotusapi.FullNodeStru
 	} else {
 		byteCode, err := lotus.EthGetCode(ctx, ethAddress, "pending")
 		if err != nil {
-			log.Errorf("EthGetCode[addr: %v] err: %v, ", ethAddress.String(), err)
+			log.Errorf("EthGetCode[addr: %v] err: %v", ethAddress.String(), err)
 			return nil, err
 		} else {
 			c.byteCodeCache.Add(ethAddress, byteCode)
