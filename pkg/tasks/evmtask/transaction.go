@@ -52,16 +52,16 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 		}
 
 		evmTransaction := &evmmodel.Transaction{
-			Height:               int64(tp.AncestorTs.Height()),
-			Version:              tp.Version,
-			Hash:                 evmTxn.Hash.String(),
-			ChainID:              uint64(evmTxn.ChainID),
-			Nonce:                uint64(evmTxn.Nonce),
-			BlockHash:            evmTxn.BlockHash.String(),
-			BlockNumber:          uint64(*evmTxn.BlockNumber),
-			TransactionIndex:     uint64(*evmTxn.TransactionIndex),
-			From:                 evmTxn.From.String(),
-			To:                   evmTxn.To.String(),
+			Height:  int64(tp.AncestorTs.Height()),
+			Version: tp.Version,
+			Hash:    evmTxn.Hash.String(),
+			ChainID: uint64(evmTxn.ChainID),
+			Nonce:   uint64(evmTxn.Nonce),
+			// BlockHash:            evmTxn.BlockHash.String(),
+			// BlockNumber:          uint64(*evmTxn.BlockNumber),
+			// TransactionIndex:     uint64(*evmTxn.TransactionIndex),
+			From: evmTxn.From.String(),
+			// To:                   evmTxn.To.String(),
 			Value:                evmTxn.Value.String(),
 			Type:                 uint64(evmTxn.Type),
 			Input:                evmTxn.Input.String(),
@@ -71,6 +71,19 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			V:                    evmTxn.V.String(),
 			R:                    evmTxn.R.String(),
 			S:                    evmTxn.S.String(),
+		}
+
+		if evmTxn.BlockHash != nil {
+			evmTransaction.BlockHash = evmTxn.BlockHash.String()
+		}
+		if evmTxn.BlockNumber != nil {
+			evmTransaction.BlockNumber = uint64(*evmTxn.BlockNumber)
+		}
+		if evmTxn.TransactionIndex != nil {
+			evmTransaction.TransactionIndex = uint64(*evmTxn.TransactionIndex)
+		}
+		if evmTxn.To != nil {
+			evmTransaction.To = evmTxn.To.String()
 		}
 
 		evmTransactions = append(evmTransactions, evmTransaction)
