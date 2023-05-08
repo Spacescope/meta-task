@@ -2,7 +2,6 @@ package evmtask
 
 import (
 	"context"
-	"sync"
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
@@ -29,10 +28,7 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 		return err
 	}
 
-	var (
-		evmInternalTxns []*evmmodel.InternalTX
-		sm              sync.Map
-	)
+	var evmInternalTxns []*evmmodel.InternalTX
 
 	for _, message := range messages {
 		if message.Message == nil {
@@ -54,29 +50,28 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 			log.Errorf("EthGetTransactionHashByCid[ts: %v, height: %v, cid: %v] err: %v", tp.AncestorTs.String(), tp.AncestorTs.Height(), message.Cid.String(), err)
 			continue
 		}
+
+		// https://filecoinproject.slack.com/archives/CP50PPW2X/p1683294037978979?thread_ts=1683255378.588109&cid=CP50PPW2X
+		hash, err := ethtypes.EthHashFromCid(invocs.MsgCid)
+		if err != nil {
+			log.Errorf("EthHashFromCid[cid: %v] err: %v", invocs.MsgCid.String(), err)
+			continue
+		}
+
 		for _, subCall := range invocs.ExecutionTrace.Subcalls {
-			subMessage := subCall.Msg
-			_, loaded := sm.LoadOrStore(subMessage.Cid().String(), true)
-			if loaded {
+			subInput := subCall.Msg
+
+			from, err := ethtypes.EthAddressFromFilecoinAddress(subInput.From)
+			if err != nil {
+				log.Errorf("EthAddressFromFilecoinAddress[from: %v] err: %v", subInput.From.String(), err)
+				continue
+			}
+			to, err := ethtypes.EthAddressFromFilecoinAddress(subInput.To)
+			if err != nil {
+				log.Errorf("EthAddressFromFilecoinAddress[to: %v] err: %v", subInput.To.String(), err)
 				continue
 			}
 
-			from, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.From)
-			if err != nil {
-				log.Errorf("EthAddressFromFilecoinAddress[from: %v] err: %v", subMessage.From.String(), err)
-				continue
-			}
-			to, err := ethtypes.EthAddressFromFilecoinAddress(subMessage.To)
-			if err != nil {
-				log.Errorf("EthAddressFromFilecoinAddress[to: %v] err: %v", subMessage.To.String(), err)
-				continue
-			}
-
-			hash, err := ethtypes.EthHashFromCid(subMessage.Cid())
-			if err != nil {
-				log.Errorf("EthHashFromCid[cid: %v] err: %v", subMessage.Cid().String(), err)
-				continue
-			}
 			internalTx := &evmmodel.InternalTX{
 				Height:     int64(tp.AncestorTs.Height()),
 				Version:    tp.Version,
@@ -84,8 +79,8 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 				ParentHash: parentHash.String(),
 				From:       from.String(),
 				To:         to.String(),
-				Type:       uint64(subMessage.Method),
-				Value:      subMessage.Value.String(),
+				Type:       uint64(subInput.Method),
+				Value:      subInput.Value.String(),
 			}
 			evmInternalTxns = append(evmInternalTxns, internalTx)
 		}
