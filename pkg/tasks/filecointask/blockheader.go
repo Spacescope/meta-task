@@ -39,12 +39,11 @@ func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error 
 		)
 	}
 
-	if len(blockHeaders) > 0 {
-		if err := common.InsertMany(ctx, new(filecoinmodel.BlockHeader), int64(tp.AncestorTs.Height()), tp.Version, &blockHeaders); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err := common.InsertMany(ctx, new(filecoinmodel.BlockHeader), int64(tp.AncestorTs.Height()), tp.Version, &blockHeaders); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v block_header", len(blockHeaders))
 	return nil
 }

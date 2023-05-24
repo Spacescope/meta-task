@@ -32,12 +32,12 @@ func (b *BlockParent) Run(ctx context.Context, tp *common.TaskParameters) error 
 			})
 		}
 	}
-	if len(blockParents) > 0 {
-		if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.AncestorTs.Height()), tp.Version, &blockParents); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+
+	if err := common.InsertMany(ctx, new(filecoinmodel.BlockParent), int64(tp.AncestorTs.Height()), tp.Version, &blockParents); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v block_parent", len(blockParents))
 	return nil
 }

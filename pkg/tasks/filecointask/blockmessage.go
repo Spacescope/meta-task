@@ -51,12 +51,11 @@ func (b *BlockMessage) Run(ctx context.Context, tp *common.TaskParameters) error
 		}
 	}
 
-	if len(blockMessages) > 0 {
-		if err := common.InsertMany(ctx, new(filecoinmodel.BlockMessage), int64(tp.AncestorTs.Height()), tp.Version, &blockMessages); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err := common.InsertMany(ctx, new(filecoinmodel.BlockMessage), int64(tp.AncestorTs.Height()), tp.Version, &blockMessages); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v block_message", len(blockMessages))
 	return nil
 }

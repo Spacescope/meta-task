@@ -45,12 +45,11 @@ func (m *Message) Run(ctx context.Context, tp *common.TaskParameters) error {
 		})
 	}
 
-	if len(messageModels) > 0 {
-		if err = common.InsertMany(ctx, new(filecoinmodel.Message), int64(tp.AncestorTs.Height()), tp.Version, &messageModels); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(filecoinmodel.Message), int64(tp.AncestorTs.Height()), tp.Version, &messageModels); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v message", len(messageModels))
 	return nil
 }
