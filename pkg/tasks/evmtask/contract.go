@@ -92,12 +92,11 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		evmContracts = append(evmContracts, contract)
 	}
 
-	if len(evmContracts) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Contract), int64(tp.AncestorTs.Height()), tp.Version, &evmContracts); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(evmmodel.Contract), int64(tp.AncestorTs.Height()), tp.Version, &evmContracts); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v evm_contract", len(evmContracts))
 	return nil
 }

@@ -89,12 +89,11 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 		evmTransactions = append(evmTransactions, evmTransaction)
 	}
 
-	if len(evmTransactions) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Transaction), int64(tp.AncestorTs.Height()), tp.Version, &evmTransactions); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(evmmodel.Transaction), int64(tp.AncestorTs.Height()), tp.Version, &evmTransactions); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v evm_transaction", len(evmTransactions))
 	return nil
 }

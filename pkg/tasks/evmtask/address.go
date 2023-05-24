@@ -76,12 +76,11 @@ func (a *Address) Run(ctx context.Context, tp *common.TaskParameters) error {
 		evmAddresses = append(evmAddresses, address)
 	}
 
-	if len(evmAddresses) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.AncestorTs.Height()), tp.Version, &evmAddresses); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(evmmodel.Address), int64(tp.AncestorTs.Height()), tp.Version, &evmAddresses); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has process %v evm_address", len(evmAddresses))
 	return nil
 }

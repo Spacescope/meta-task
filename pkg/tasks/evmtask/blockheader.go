@@ -70,5 +70,6 @@ func (b *BlockHeader) Run(ctx context.Context, tp *common.TaskParameters) error 
 		log.Errorf("Sql Engine err: %v", err)
 		return err
 	}
+
 	return nil
 }

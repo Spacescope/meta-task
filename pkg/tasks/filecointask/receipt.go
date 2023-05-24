@@ -49,12 +49,11 @@ func (r *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 		})
 	}
 
-	if len(receiptModels) > 0 {
-		if err = common.InsertMany(ctx, new(filecoinmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &receiptModels); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(filecoinmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &receiptModels); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v receipt", len(receiptModels))
 	return nil
 }

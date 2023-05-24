@@ -85,12 +85,11 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 		evmReceipts = append(evmReceipts, r)
 	}
 
-	if len(evmReceipts) > 0 {
-		if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &evmReceipts); err != nil {
-			log.Errorf("Sql Engine err: %v", err)
-			return err
-		}
+	if err = common.InsertMany(ctx, new(evmmodel.Receipt), int64(tp.AncestorTs.Height()), tp.Version, &evmReceipts); err != nil {
+		log.Errorf("Sql Engine err: %v", err)
+		return err
 	}
+
 	log.Infof("has been process %v evm_receipt", len(evmReceipts))
 	return nil
 }
