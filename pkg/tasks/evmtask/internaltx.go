@@ -52,11 +52,11 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 
 		// https://filecoinproject.slack.com/archives/CP50PPW2X/p1683294037978979?thread_ts=1683255378.588109&cid=CP50PPW2X
-		hash, err := ethtypes.EthHashFromCid(invocs.MsgCid)
-		if err != nil {
-			log.Errorf("EthHashFromCid[cid: %v] err: %v", invocs.MsgCid.String(), err)
-			continue
-		}
+		// hash, err := ethtypes.EthHashFromCid(invocs.MsgCid)
+		// if err != nil {
+		// 	log.Errorf("EthHashFromCid[cid: %v] err: %v", invocs.MsgCid.String(), err)
+		// 	continue
+		// }
 
 		for _, subCall := range invocs.ExecutionTrace.Subcalls {
 			subInput := subCall.Msg
@@ -73,9 +73,9 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 			}
 
 			internalTx := &evmmodel.InternalTX{
-				Height:      int64(tp.AncestorTs.Height()),
-				Version:     tp.Version,
-				Hash:        hash.String(),
+				Height:  int64(tp.AncestorTs.Height()),
+				Version: tp.Version,
+				// Hash:        hash.String(),
 				ParentHash:  parentHash.String(),
 				From:        from.String(),
 				To:          to.String(),
