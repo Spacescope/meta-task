@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/Spacescore/observatory-task/pkg/utils"
 	"github.com/filecoin-project/go-address"
@@ -186,10 +187,15 @@ func InsertMany(ctx context.Context, t interface{}, height int64, version int, m
 		return err
 	}
 
-	_, err = session.Insert(m)
-	if err != nil {
-		return err
+	sliceValue := reflect.Indirect(reflect.ValueOf(m))
+
+	if sliceValue.Kind() == reflect.Slice && sliceValue.Len() > 0 {
+		_, err = session.Insert(m)
+		if err != nil {
+			return err
+		}
 	}
+
 	session.Commit()
 
 	return nil
