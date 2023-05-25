@@ -4,8 +4,8 @@ import "time"
 
 // InternalTX contract internal transaction
 type InternalTX struct {
-	Height      int64     `xorm:"bigint notnull pk"`
-	Version     int       `xorm:"integer notnull pk"`
+	Height      int64     `xorm:"bigint notnull"`
+	Version     int       `xorm:"integer notnull"`
 	ParentHash  string    `xorm:"varchar(255) notnull index default ''"`
 	Type        uint64    `xorm:"bigint notnull default 0"`
 	From        string    `xorm:"varchar(255) notnull index default ''"`
