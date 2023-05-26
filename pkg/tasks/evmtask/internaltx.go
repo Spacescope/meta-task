@@ -73,9 +73,8 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 			}
 
 			internalTx := &evmmodel.InternalTX{
-				Height:  int64(tp.AncestorTs.Height()),
-				Version: tp.Version,
-				// Hash:        hash.String(),
+				Height:      int64(tp.AncestorTs.Height()),
+				Version:     tp.Version,
 				ParentHash:  parentHash.String(),
 				From:        from.String(),
 				To:          to.String(),
