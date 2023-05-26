@@ -65,7 +65,7 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			Value:                evmTxn.Value.String(),
 			Type:                 uint64(evmTxn.Type),
 			Input:                evmTxn.Input.String(),
-			GasLimit:             uint64(evmTxn.Gas),
+			GasLimit:             uint64(evmTxn.Gas), // should be name GAS
 			MaxFeePerGas:         evmTxn.MaxFeePerGas.String(),
 			MaxPriorityFeePerGas: evmTxn.MaxPriorityFeePerGas.String(),
 			V:                    evmTxn.V.String(),
