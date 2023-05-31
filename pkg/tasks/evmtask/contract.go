@@ -74,16 +74,16 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 		}
 
 		contract := &evmmodel.Contract{
-			Height:          int64(tp.AncestorTs.Height()),
+			Height:          int64(tp.CurrentTs.Height()),
 			Version:         tp.Version,
 			FilecoinAddress: address.String(),
 			Address:         ethAddress.String(),
 			ByteCode:        hex.EncodeToString(byteCode),
 		}
 
-		actorState, err := tp.Api.StateGetActor(ctx, address, tp.AncestorTs.Key())
+		actorState, err := tp.Api.StateGetActor(ctx, address, tp.CurrentTs.Key())
 		if err != nil {
-			log.Warnf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.AncestorTs.String(), tp.AncestorTs.Height(), err)
+			log.Warnf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.CurrentTs.String(), tp.CurrentTs.Height(), err)
 		} else if err == nil && actorState != nil {
 			contract.Balance = actorState.Balance.String()
 			contract.Nonce = actorState.Nonce

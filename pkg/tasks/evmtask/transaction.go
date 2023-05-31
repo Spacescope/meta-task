@@ -47,7 +47,7 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 
 		evmTxn, err := tp.Api.EthGetTransactionByHash(ctx, &ethHash)
 		if err != nil {
-			log.Errorf("0 EthGetTransactionByHash[hash: %v] err: %v", ethHash)
+			log.Errorf("EthGetTransactionByHash[hash: %v] err: %v", ethHash, err)
 			continue
 		}
 
