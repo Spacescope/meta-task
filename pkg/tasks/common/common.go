@@ -122,22 +122,22 @@ func (c *CidLRU) setCacheActorCode(key string, value interface{}) {
 
 func (c *CidLRU) IsEVMActor(ctx context.Context, messageToAddress address.Address, ts *types.TipSet) (bool, error) {
 	var (
-		toActor *types.Actor
-		err     error
+		actor *types.Actor
+		err   error
 	)
 	messageActorKey := fmt.Sprintf("%v-%v", messageToAddress.String(), ts.String())
 
-	toActorCode, ok := c.getCacheActorCode(messageActorKey)
+	actorCode, ok := c.getCacheActorCode(messageActorKey)
 	if ok {
-		return NewCidCache(ctx, c.lotus).IsEVMActor(toActorCode), nil
+		return NewCidCache(ctx, c.lotus).IsEVMActor(actorCode), nil
 	} else {
-		toActor, err = c.lotus.StateGetActor(ctx, messageToAddress, ts.Key())
+		actor, err = c.lotus.StateGetActor(ctx, messageToAddress, ts.Key())
 		if err != nil {
 			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", ts.Key(), ts.Height(), err)
 			return false, err
 		}
-		c.setCacheActorCode(messageActorKey, toActor.Code)
-		return NewCidCache(ctx, c.lotus).IsEVMActor(toActor.Code), nil
+		c.setCacheActorCode(messageActorKey, actor.Code)
+		return NewCidCache(ctx, c.lotus).IsEVMActor(actor.Code), nil
 	}
 }
 
