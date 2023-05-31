@@ -81,10 +81,6 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 			ByteCode:        hex.EncodeToString(byteCode),
 		}
 
-		// https://starboardlab.slack.com/archives/C04844LP3JM/p1685444412015139
-		// https://starboardlab.slack.com/archives/C04844LP3JM/p1685514507811319
-		// use ancestorTS will raise a complicated error.
-		// actorState, err := tp.Api.StateGetActor(ctx, address, tp.AncestorTs.Key())
 		actorState, err := tp.Api.StateGetActor(ctx, address, tp.CurrentTs.Key())
 		if err != nil {
 			log.Warnf("StateGetActor[addr: %v, ts: %v, height: %v] err: %v", address.String(), tp.CurrentTs.String(), tp.CurrentTs.Height(), err)
