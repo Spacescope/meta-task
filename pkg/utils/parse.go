@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/filecoin-project/go-state-types/big"
+
+	addr "github.com/filecoin-project/go-address"
 )
 
 // ParseHexToUint64 parse start with hex str to uint64
@@ -50,4 +52,13 @@ func ParseStrToHex(str string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(decoded), nil
+}
+
+// https://github.com/filecoin-project/go-state-types/blob/master/builtin/singletons.go#L22
+func MustMakeAddress(id uint64) addr.Address {
+	address, err := addr.NewIDAddress(id)
+	if err != nil {
+		panic(err)
+	}
+	return address
 }
