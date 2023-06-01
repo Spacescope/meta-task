@@ -5,6 +5,8 @@ import (
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
+	"github.com/Spacescore/observatory-task/pkg/utils"
+	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,10 +35,15 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			continue
 		}
 
-		// determine if "to" is evm actor.
-		isEVMActor, err := common.NewCidLRU(ctx, tp.Api).IsEVMActor(ctx, message.Message.To, tp.AncestorTs)
-		if err != nil || !isEVMActor {
-			continue
+		// ----- only handle the following cases: from -> to -----
+		// a.deploy contract:              msg.sender -> f10(0x00) -- creation txn
+		// b.call contract:                msg.sender -> contract
+		// c.contract call contract:       contract -> contract
+		// d.contract call normal address: contract -> address
+		if message.Message.To != utils.MustMakeAddress(10) { // case b,c,d //builtintypes.EthereumAddressManagerActorID
+			if isEVMActor, err := common.NewCidLRU(ctx, tp.Api).AtLeastOneAddressIsEVMActor(ctx, []address.Address{message.Message.From, message.Message.To}, tp.AncestorTs); err != nil || !isEVMActor {
+				continue
+			}
 		}
 
 		ethHash, err := ethtypes.EthHashFromCid(message.Cid)

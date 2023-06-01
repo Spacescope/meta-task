@@ -120,18 +120,18 @@ func (c *CidLRU) setCacheActorCode(key string, value interface{}) {
 	c.cidLRU.Add(key, value)
 }
 
-func (c *CidLRU) IsEVMActor(ctx context.Context, messageToAddress address.Address, ts *types.TipSet) (bool, error) {
+func (c *CidLRU) IsEVMActor(ctx context.Context, messageAddress address.Address, ts *types.TipSet) (bool, error) {
 	var (
 		actor *types.Actor
 		err   error
 	)
-	messageActorKey := fmt.Sprintf("%v-%v", messageToAddress.String(), ts.String())
+	messageActorKey := fmt.Sprintf("%v-%v", messageAddress.String(), ts.String())
 
 	actorCode, ok := c.getCacheActorCode(messageActorKey)
 	if ok {
 		return NewCidCache(ctx, c.lotus).IsEVMActor(actorCode), nil
 	} else {
-		actor, err = c.lotus.StateGetActor(ctx, messageToAddress, ts.Key())
+		actor, err = c.lotus.StateGetActor(ctx, messageAddress, ts.Key())
 		if err != nil {
 			log.Errorf("StateGetActor[ts: %v, height: %v] err: %v", ts.Key(), ts.Height(), err)
 			return false, err
@@ -139,6 +139,30 @@ func (c *CidLRU) IsEVMActor(ctx context.Context, messageToAddress address.Addres
 		c.setCacheActorCode(messageActorKey, actor.Code)
 		return NewCidCache(ctx, c.lotus).IsEVMActor(actor.Code), nil
 	}
+}
+
+func (c *CidLRU) AtLeastOneAddressIsEVMActor(ctx context.Context, ToAndFromAddresses []address.Address, ts *types.TipSet) (bool, error) {
+	if len(ToAndFromAddresses) != 2 {
+		panic("ToAndFromAddresses should contain both 'to' and 'from' addresses")
+	}
+
+	var (
+		b   bool
+		err error
+	)
+
+	for _, txnAddress := range ToAndFromAddresses {
+		b, err = c.IsEVMActor(ctx, txnAddress, ts)
+		if err != nil {
+			return false, err
+		}
+
+		if b {
+			return b, nil
+		}
+	}
+
+	return false, nil
 }
 
 // -------------------------------------------------------------------------------
