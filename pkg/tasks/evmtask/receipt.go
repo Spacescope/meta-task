@@ -2,7 +2,6 @@ package evmtask
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
@@ -77,7 +76,7 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 			CumulativeGasUsed: int64(receipt.CumulativeGasUsed),
 			GasUsed:           int64(receipt.GasUsed),
 			EffectiveGasPrice: receipt.EffectiveGasPrice.Int64(),
-			LogsBloom:         hex.EncodeToString(receipt.LogsBloom),
+			LogsBloom:         receipt.LogsBloom.String(),
 		}
 
 		b, _ := json.Marshal(receipt.Logs)
