@@ -2,7 +2,6 @@ package evmtask
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/Spacescore/observatory-task/pkg/models/evmmodel"
 	"github.com/Spacescore/observatory-task/pkg/tasks/common"
@@ -78,7 +77,7 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 			Version:         tp.Version,
 			FilecoinAddress: address.String(),
 			Address:         ethAddress.String(),
-			ByteCode:        hex.EncodeToString(byteCode),
+			ByteCode:        byteCode.String(),
 		}
 
 		actorState, err := tp.Api.StateGetActor(ctx, address, tp.CurrentTs.Key())
