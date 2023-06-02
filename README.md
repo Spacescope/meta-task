@@ -43,6 +43,5 @@ synchronize the table structure to the specified database according to the model
 Dual-licensed under [MIT](https://github.com/Spacescope/meta-task/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/Spacescope/meta-task/blob/main/LICENSE-APACHE) 
 
 
-## Doc
-1. https://docs.google.com/document/d/1HzXjjQ2OlDxuhjDh6q4R6W8EPAqhI3rNKVTz0MgkZv8/edit
-2. https://drive.google.com/drive/u/0/folders/1ptiBCy4lsO78KJqQR3oYv2TXrk3BrH8p
+## System Design Doc
+https://docs.google.com/document/d/1ZDgiejhK0J4RfCvfug4YuG8csaKgW3Io-cozPw1pmpE/edit?usp=sharing
