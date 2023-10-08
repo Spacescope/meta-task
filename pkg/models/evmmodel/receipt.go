@@ -7,6 +7,7 @@ type Receipt struct {
 	Height            int64     `xorm:"bigint notnull pk"`
 	Version           int       `xorm:"integer notnull pk"`
 	TransactionHash   string    `xorm:"varchar(255) notnull pk"`
+	MessageCid        string    `xorm:"varchar(255) index notnull default ''"`
 	TransactionIndex  int64     `xorm:"integer notnull default 0"`
 	BlockHash         string    `xorm:"varchar(255) notnull default ''"`
 	BlockNumber       int64     `xorm:"bigint notnull default 0"`

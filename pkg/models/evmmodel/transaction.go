@@ -7,6 +7,7 @@ type Transaction struct {
 	Height               int64     `xorm:"bigint notnull pk"`
 	Version              int       `xorm:"integer notnull pk"`
 	Hash                 string    `xorm:"varchar(255) pk notnull index default ''"`
+	MessageCid           string    `xorm:"varchar(255) notnull index default ''"`
 	ChainID              uint64    `xorm:"integer notnull default 0"`
 	Nonce                uint64    `xorm:"bigint notnull default 0"`
 	BlockHash            string    `xorm:"varchar(255) notnull index default ''"`
@@ -20,9 +21,9 @@ type Transaction struct {
 	Gas                  uint64    `xorm:"bigint notnull default 0"`
 	MaxFeePerGas         string    `xorm:"varchar(100) notnull default ''"`
 	MaxPriorityFeePerGas string    `xorm:"varchar(100) notnull default ''"`
-	V                    string    `xorm:"varchar(255) notnull index default ''"`
-	R                    string    `xorm:"varchar(255) notnull index default ''"`
-	S                    string    `xorm:"varchar(255) notnull index default ''"`
+	V                    string    `xorm:"varchar(255) notnull default ''"`
+	R                    string    `xorm:"varchar(255) notnull default ''"`
+	S                    string    `xorm:"varchar(255) notnull default ''"`
 	CreatedAt            time.Time `xorm:"created"`
 }
 

@@ -77,6 +77,7 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 			GasUsed:           int64(receipt.GasUsed),
 			EffectiveGasPrice: receipt.EffectiveGasPrice.Int64(),
 			LogsBloom:         receipt.LogsBloom.String(),
+			MessageCid:        message.Cid.String(),
 		}
 
 		b, _ := json.Marshal(receipt.Logs)
