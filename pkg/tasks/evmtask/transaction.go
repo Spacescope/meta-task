@@ -78,6 +78,7 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			V:                    evmTxn.V.String(),
 			R:                    evmTxn.R.String(),
 			S:                    evmTxn.S.String(),
+			MessageCid:           message.Cid.String(),
 		}
 
 		if evmTxn.BlockHash != nil {

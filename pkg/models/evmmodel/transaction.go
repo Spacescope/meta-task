@@ -23,6 +23,7 @@ type Transaction struct {
 	V                    string    `xorm:"varchar(255) notnull index default ''"`
 	R                    string    `xorm:"varchar(255) notnull index default ''"`
 	S                    string    `xorm:"varchar(255) notnull index default ''"`
+	MessageCid           string    `xorm:"varchar(255) index notnull default ''"`
 	CreatedAt            time.Time `xorm:"created"`
 }
 

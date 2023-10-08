@@ -20,6 +20,7 @@ type Receipt struct {
 	EffectiveGasPrice int64     `xorm:"bigint notnull default 0"`
 	LogsBloom         string    `xorm:"text notnull default ''"`
 	Logs              string    `xorm:"text notnull default ''"`
+	MessageCid        string    `xorm:"varchar(255) index notnull default ''"`
 	CreatedAt         time.Time `xorm:"created"`
 }
 
