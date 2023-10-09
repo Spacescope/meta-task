@@ -81,15 +81,16 @@ func (i *InternalTx) Run(ctx context.Context, tp *common.TaskParameters) error {
 			}
 
 			internalTx := &evmmodel.InternalTX{
-				Height:      int64(tp.AncestorTs.Height()),
-				Version:     tp.Version,
-				ParentHash:  parentHash.String(),
-				From:        from.String(),
-				To:          to.String(),
-				Type:        uint64(subInput.Method),
-				Value:       subInput.Value.String(),
-				Params:      ethtypes.EthBytes(subInput.Params).String(),
-				ParamsCodec: subInput.ParamsCodec,
+				Height:           int64(tp.AncestorTs.Height()),
+				Version:          tp.Version,
+				ParentHash:       parentHash.String(),
+				ParentMessageCid: message.Cid.String(),
+				From:             from.String(),
+				To:               to.String(),
+				Type:             uint64(subInput.Method),
+				Value:            subInput.Value.String(),
+				Params:           ethtypes.EthBytes(subInput.Params).String(),
+				ParamsCodec:      subInput.ParamsCodec,
 			}
 
 			evmInternalTxns = append(evmInternalTxns, internalTx)
