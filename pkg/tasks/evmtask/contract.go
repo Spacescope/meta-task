@@ -36,7 +36,8 @@ func (c *Contract) getByteCode(ctx context.Context, lotus *lotusapi.FullNodeStru
 	if ok {
 		return byteCodeFromCache.(ethtypes.EthBytes), nil
 	} else {
-		byteCode, err := lotus.EthGetCode(ctx, ethAddress, "pending")
+		pending := "pending"
+		byteCode, err := lotus.EthGetCode(ctx, ethAddress, ethtypes.EthBlockNumberOrHash{PredefinedBlock: &pending})
 		if err != nil {
 			log.Errorf("EthGetCode[addr: %v] err: %v", ethAddress.String(), err)
 			return nil, err
