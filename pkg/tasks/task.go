@@ -41,6 +41,7 @@ func init() {
 		new(filecointask.Message),
 		new(filecointask.Receipt),
 		new(filecointask.RawActor),
+		new(filecointask.BuiltInActorEvent),
 
 		new(evmtask.BlockHeader),
 		new(evmtask.Transaction),

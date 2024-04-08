@@ -24,5 +24,6 @@ func init() {
 		new(filecoinmodel.Message),
 		new(filecoinmodel.RawActor),
 		new(filecoinmodel.Receipt),
+		new(filecoinmodel.BuiltinActorEvents),
 	)
 }

@@ -20,6 +20,7 @@ Remember, if you modify the models of this repository, please make sure the [mod
 * message
 * receipt
 * raw_actor
+* builtin-actor-events
 * evm_block_header
 * evm_internal_tx
 * evm_receipt
