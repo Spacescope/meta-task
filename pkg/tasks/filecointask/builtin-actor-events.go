@@ -21,7 +21,7 @@ type BuiltInActorEvent struct {
 }
 
 func (r *BuiltInActorEvent) Name() string {
-	return "builtin-actor-events"
+	return "builtin_actor_events"
 }
 
 func (r *BuiltInActorEvent) Model() interface{} {
@@ -222,7 +222,7 @@ func (r *BuiltInActorEvent) Run(ctx context.Context, tp *common.TaskParameters) 
 		return err
 	}
 
-	log.Infof("has been process %v builtin-actor-events", len(eventsResult))
+	log.Infof("has been process %v builtin_actor_events", len(eventsResult))
 
 	return nil
 }
