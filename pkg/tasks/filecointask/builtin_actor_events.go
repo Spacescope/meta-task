@@ -181,6 +181,7 @@ func (r *BuiltInActorEvent) Run(ctx context.Context, tp *common.TaskParameters) 
 
 	for evtIdx, event := range events {
 		var eventsSlice []*KVEvent
+		var eventType string
 		for entryIdx, e := range event.Entries {
 			if e.Codec != 0x51 { // 81
 				log.Warnf("Codec not equal to cbor, height: %v, evtIdx: %v, emitter: %v, entryIdx: %v, e.Codec: %v", tp.AncestorTs.Height(), evtIdx, event.Emitter.String(), entryIdx, e.Codec)
@@ -194,6 +195,9 @@ func (r *BuiltInActorEvent) Run(ctx context.Context, tp *common.TaskParameters) 
 			switch convert[e.Key] {
 			case STRING:
 				kvEvent.Value = v.(string)
+				if kvEvent.Key == "$type" {
+					eventType = kvEvent.Value
+				}
 			case INT:
 				kvEvent.Value = strconv.Itoa(v.(int))
 			case BIGINT:
@@ -213,6 +217,7 @@ func (r *BuiltInActorEvent) Run(ctx context.Context, tp *common.TaskParameters) 
 			Version:    tp.Version,
 			MessageCid: event.MsgCid.String(),
 			Emitter:    event.Emitter.String(),
+			EventType:  eventType,
 			EventEntry: string(re),
 		})
 	}

@@ -7,6 +7,7 @@ type BuiltinActorEvents struct {
 	Version    int       `xorm:"integer notnull index"`
 	MessageCid string    `xorm:"varchar(255) notnull index default ''"`
 	Emitter    string    `xorm:"varchar(255) notnull index default ''"`
+	EventType  string    `xorm:"varchar(128) notnull index default ''"`
 	EventEntry string    `xorm:"text"`
 	CreatedAt  time.Time `xorm:"created"`
 }
