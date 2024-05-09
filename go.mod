@@ -7,8 +7,8 @@ toolchain go1.22.2
 require (
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.1
-	github.com/filecoin-project/go-state-types v0.13.1
-	github.com/filecoin-project/lotus v1.26.1
+	github.com/filecoin-project/go-state-types v0.13.3
+	github.com/filecoin-project/lotus v1.26.3
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.2
@@ -50,7 +50,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/filecoin-project/go-amt-ipld/v2 v2.1.1-0.20201006184820-924ee87a1349 // indirect
 	github.com/filecoin-project/go-amt-ipld/v3 v3.1.1 // indirect
-	github.com/filecoin-project/go-amt-ipld/v4 v4.2.0 // indirect
+	github.com/filecoin-project/go-amt-ipld/v4 v4.3.0 // indirect
 	github.com/filecoin-project/go-bitfield v0.2.4 // indirect
 	github.com/filecoin-project/go-cbor-util v0.0.1 // indirect
 	github.com/filecoin-project/go-crypto v0.0.1 // indirect
@@ -133,7 +133,7 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.33.1 // indirect
+	github.com/libp2p/go-libp2p v0.33.2 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.3 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.12.2 // indirect
+	github.com/multiformats/go-multiaddr v0.12.3 // indirect
 	github.com/multiformats/go-multiaddr-dns v0.3.1 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
@@ -188,7 +188,7 @@ require (
 	github.com/valyala/fasttemplate v1.0.1 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/bencher v0.0.0-20190829221104-bb6607aa8bba // indirect
-	github.com/whyrusleeping/cbor-gen v0.1.0 // indirect
+	github.com/whyrusleeping/cbor-gen v0.1.1 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
