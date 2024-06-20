@@ -58,6 +58,11 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			continue
 		}
 
+		if evmTxn == nil {
+			log.Errorf("Got nil evmTxn, hash: %v", ethHash)
+			continue
+		}
+
 		evmTransaction := &evmmodel.Transaction{
 			Height:  int64(tp.AncestorTs.Height()),
 			Version: tp.Version,
