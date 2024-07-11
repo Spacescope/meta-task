@@ -48,8 +48,8 @@ func (r *RawActor) Run(ctx context.Context, tp *common.TaskParameters) error {
 			Balance:   ac.Balance.String(),
 			Nonce:     ac.Nonce,
 		}
-		if ac.Address != nil {
-			ra.Address = ac.Address.String()
+		if ac.DelegatedAddress != nil {
+			ra.Address = ac.DelegatedAddress.String()
 		}
 		key := fmt.Sprintf("%d-%d-%s-%s-%s", ra.Height, ra.Version, ra.Address, ra.StateRoot, ra.Code)
 		exitRa[key] = ra

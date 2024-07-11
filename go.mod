@@ -7,8 +7,8 @@ toolchain go1.22.2
 require (
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.2
-	github.com/filecoin-project/go-state-types v0.14.0-dev
-	github.com/filecoin-project/lotus v1.27.1
+	github.com/filecoin-project/go-state-types v0.14.0-rc5
+	github.com/filecoin-project/lotus v1.28.0-rc4
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.2
@@ -28,7 +28,7 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.3.0 // indirect
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/GeertJohan/go.incremental v1.0.0 // indirect
 	github.com/GeertJohan/go.rice v1.0.3 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
@@ -50,6 +50,7 @@ require (
 	github.com/filecoin-project/go-amt-ipld/v4 v4.3.0 // indirect
 	github.com/filecoin-project/go-bitfield v0.2.4 // indirect
 	github.com/filecoin-project/go-crypto v0.0.1 // indirect
+	github.com/filecoin-project/go-f3 v0.0.3-0.20240702063402-d48771055cf4 // indirect
 	github.com/filecoin-project/go-hamt-ipld v0.1.5 // indirect
 	github.com/filecoin-project/go-hamt-ipld/v2 v2.0.0 // indirect
 	github.com/filecoin-project/go-hamt-ipld/v3 v3.1.1-0.20220505191157-d7766f8628ec // indirect
@@ -117,7 +118,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.34.1 // indirect
+	github.com/libp2p/go-libp2p v0.35.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.11.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
 	github.com/magefile/mage v1.9.0 // indirect

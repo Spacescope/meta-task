@@ -58,11 +58,11 @@ func (c *Contract) Run(ctx context.Context, tp *common.TaskParameters) error {
 	var evmContracts []*evmmodel.Contract
 
 	for _, actor := range changedActors {
-		if !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) || actor.Address == nil {
+		if !common.NewCidCache(ctx, tp.Api).IsEVMActor(actor.Code) || actor.DelegatedAddress == nil {
 			continue
 		}
 
-		address := *actor.Address
+		address := *actor.DelegatedAddress
 		ethAddress, err := ethtypes.EthAddressFromFilecoinAddress(address)
 		if err != nil {
 			log.Errorf("EthAddressFromFilecoinAddress[addr: %v] err: %v", address.String(), err)
