@@ -74,16 +74,22 @@ func (e *Transaction) Run(ctx context.Context, tp *common.TaskParameters) error 
 			// TransactionIndex:     uint64(*evmTxn.TransactionIndex),
 			From: evmTxn.From.String(),
 			// To:                   evmTxn.To.String(),
-			Value:                evmTxn.Value.String(),
-			Type:                 uint64(evmTxn.Type),
-			Input:                evmTxn.Input.String(),
-			Gas:                  uint64(evmTxn.Gas),
-			MaxFeePerGas:         evmTxn.MaxFeePerGas.String(),
-			MaxPriorityFeePerGas: evmTxn.MaxPriorityFeePerGas.String(),
-			V:                    evmTxn.V.String(),
-			R:                    evmTxn.R.String(),
-			S:                    evmTxn.S.String(),
-			MessageCid:           message.Cid.String(),
+			Value:      evmTxn.Value.String(),
+			Type:       uint64(evmTxn.Type),
+			Input:      evmTxn.Input.String(),
+			Gas:        uint64(evmTxn.Gas),
+			V:          evmTxn.V.String(),
+			R:          evmTxn.R.String(),
+			S:          evmTxn.S.String(),
+			MessageCid: message.Cid.String(),
+		}
+
+		if evmTxn.MaxFeePerGas != nil {
+			evmTransaction.MaxFeePerGas = evmTxn.MaxFeePerGas.String()
+		}
+
+		if evmTxn.MaxPriorityFeePerGas != nil {
+			evmTransaction.MaxPriorityFeePerGas = evmTxn.MaxPriorityFeePerGas.String()
 		}
 
 		if evmTxn.BlockHash != nil {
