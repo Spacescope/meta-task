@@ -1,4 +1,4 @@
-FROM golang:1.22.2-bullseye as builder
+FROM golang:1.22.5-bullseye AS builder
 
 COPY . /opt
 RUN cd /opt && go build -o bin/meta-task cmd/meta-task/main.go
