@@ -30,7 +30,7 @@ Remember, if you modify the models of this repository, please make sure the [mod
 
 ## Build And Run
 
-1. `make build`
+1. `make binary`
 2. `bin/meta-task --conf <config path>`
 
 > When you use database as storage, you do not need to manually create a database, the program will automatically 
