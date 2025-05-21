@@ -6,7 +6,7 @@ require (
 	github.com/filecoin-project/go-address v1.2.0
 	github.com/filecoin-project/go-jsonrpc v0.7.0
 	github.com/filecoin-project/go-state-types v0.16.0
-	github.com/filecoin-project/lotus v1.32.3
+	github.com/filecoin-project/lotus v1.33.0
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.2
@@ -49,7 +49,7 @@ require (
 	github.com/filecoin-project/go-bitfield v0.2.4 // indirect
 	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/filecoin-project/go-crypto v0.1.0 // indirect
-	github.com/filecoin-project/go-f3 v0.8.3 // indirect
+	github.com/filecoin-project/go-f3 v0.8.4 // indirect
 	github.com/filecoin-project/go-hamt-ipld v0.1.5 // indirect
 	github.com/filecoin-project/go-hamt-ipld/v2 v2.0.0 // indirect
 	github.com/filecoin-project/go-hamt-ipld/v3 v3.4.0 // indirect
@@ -171,7 +171,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
