@@ -2,8 +2,6 @@ module github.com/Spacescore/observatory-task
 
 go 1.23.10
 
-toolchain go1.24.7
-
 require (
 	github.com/filecoin-project/go-address v1.2.0
 	github.com/filecoin-project/go-jsonrpc v0.8.0
