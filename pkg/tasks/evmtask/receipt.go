@@ -55,7 +55,7 @@ func (e *Receipt) Run(ctx context.Context, tp *common.TaskParameters) error {
 			log.Errorf("EthHashFromCid[cid: %v] err: %v", message.Cid.String(), err)
 			return err
 		}
-		receipt, err := tp.Api.EthGetTransactionReceipt(ctx, ethHash)
+		receipt, err := tp.Api.EthGetTransactionReceiptLimited(ctx, ethHash, tp.AncestorTs.Height())
 		if err != nil {
 			log.Errorf("EthGetTransactionReceipt[hash: %v] err: %v", ethHash.String(), err)
 			continue
