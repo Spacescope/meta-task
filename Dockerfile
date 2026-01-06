@@ -5,7 +5,7 @@ RUN cd /opt && go build -o bin/meta-task cmd/meta-task/main.go
 
 FROM debian:trixie
 RUN apt update && apt-get install ca-certificates -y
-RUN useradd --gecos "Devops Starboard,Github,WorkPhone,HomePhone" --home /app/meta-task --disabled-password spacescope
+RUN useradd -m -d /app/meta-task -c "Devops Starboard,Github,WorkPhone,HomePhone" -s /usr/sbin/nologin spacescope
 USER spacescope
 COPY --from=builder /opt/bin/meta-task /app/meta-task/meta-task
 
