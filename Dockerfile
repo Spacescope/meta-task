@@ -3,7 +3,7 @@ FROM golang:1.24.7-trixie AS builder
 COPY . /opt
 RUN cd /opt && go build -o bin/meta-task cmd/meta-task/main.go
 
-FROM debian:bullseye
+FROM debian:trixie
 RUN apt update && apt-get install ca-certificates -y
 RUN adduser --gecos "Devops Starboard,Github,WorkPhone,HomePhone" --home /app/meta-task --disabled-password spacescope
 USER spacescope
