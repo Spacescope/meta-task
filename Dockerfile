@@ -1,4 +1,4 @@
-FROM golang:1.25.7-trixie AS builder
+FROM golang:1.25.14-trixie AS builder
 
 COPY . /opt
 RUN cd /opt && go build -o bin/meta-task cmd/meta-task/main.go
